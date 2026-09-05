@@ -38,3 +38,16 @@ def load_feature_names(filepath: Path = config.FEATURE_NAMES_PATH) -> List[str]:
     if not filepath.exists():
         raise FileNotFoundError(f"Feature names file not found at {filepath}. Please run training first.")
     return joblib.load(filepath)
+
+def save_anomaly_detector(detector: Any, filepath: Path = config.ANOMALY_DETECTOR_PATH):
+    """Saves Isolation Forest anomaly detector object."""
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(detector, filepath)
+    print(f"Anomaly Detector saved to {filepath}")
+
+def load_anomaly_detector(filepath: Path = config.ANOMALY_DETECTOR_PATH) -> Any:
+    """Loads saved Isolation Forest anomaly detector object."""
+    if not filepath.exists():
+        raise FileNotFoundError(f"Anomaly detector file not found at {filepath}. Please run training first.")
+    return joblib.load(filepath)
+

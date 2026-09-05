@@ -22,6 +22,8 @@ MODEL_COMPARISON_PATH = REPORTS_DIR / "model_comparison.csv"
 BEST_MODEL_PATH = MODELS_DIR / "best_model.joblib"
 SCALER_PATH = MODELS_DIR / "scaler.joblib"
 FEATURE_NAMES_PATH = MODELS_DIR / "feature_names.joblib"
+ANOMALY_DETECTOR_PATH = MODELS_DIR / "anomaly_detector.joblib"
+CROSS_VAL_PATH = REPORTS_DIR / "cross_validation.csv"
 TARGET_COL = "target"
 
 

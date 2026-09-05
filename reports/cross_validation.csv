@@ -1,0 +1,5 @@
+Model,CV_Mean_F1,CV_Std_F1,CV_Mean_Recall,CV_Mean_Precision,CV_Mean_Accuracy,CV_Mean_ROC_AUC
+Random Forest,0.9651,0.003,0.9701,0.9603,0.9912,0.9977
+XGBoost,0.9583,0.0034,0.9764,0.941,0.9893,0.9982
+Decision Tree,0.9195,0.0193,0.9613,0.8822,0.9786,0.9905
+Logistic Regression,0.7176,0.0081,0.8806,0.6057,0.9126,0.9633
