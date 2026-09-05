@@ -560,6 +560,9 @@ def render_batch_diagnostics(model, scaler, feature_names, iso_forest):
                 st.error("⚠️ Uploaded CSV file is empty. Please upload a valid CSV containing sensor records.")
                 return
                 
+            st.session_state["uploaded_custom_df"] = df_batch_raw.copy()
+            st.session_state["uploaded_filename"] = uploaded_file.name
+                
             req_sensors = ["air_temperature_k", "process_temperature_k", "rotational_speed_rpm", "torque_nm", "tool_wear_min"]
             found_cols = [c.lower() for c in df_batch_raw.columns]
             missing = []
@@ -731,58 +734,72 @@ def process_batch_dataframe(df_raw, model, scaler, feature_names, iso_forest, se
 def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
     st.subheader("📈 Model Performance & 5-Fold Cross-Validation")
     
-    st.markdown("""
-    <div style="background-color: #1E293B; padding: 1.2rem; border-radius: 10px; border-left: 5px solid #38BDF8; margin-bottom: 1.5rem;">
-        <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0;">ℹ️ Why evaluate benchmarks before deployment?</h4>
-        <p style="color: #E2E8F0; margin: 0; font-size: 0.95rem;">
-            Before feeding your own machine telemetry into a predictive maintenance system, the underlying model must be rigorously validated offline. 
-            The benchmark tables below show the offline validation results evaluated across <b>22,500 industrial machine telemetry records</b>. 
-            You can also upload <b>YOUR OWN CSV dataset</b> below to run live 5-Fold Cross Validation directly on your data!
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    from src.evaluate import run_full_evaluation_on_custom_data
     
-    eval_mode = st.radio(
-        "Select Benchmark Evaluation Mode",
-        [
-            "📊 Baseline Reference Benchmarks (Trained on 22,500 Industrial Records)",
-            "🧪 Run 5-Fold Cross-Validation on YOUR Custom Uploaded CSV Data"
-        ],
-        index=0
+    # Check if a custom dataset has been uploaded anywhere in session
+    uploaded_df = st.session_state.get("uploaded_custom_df", None)
+    uploaded_fname = st.session_state.get("uploaded_filename", "Custom Dataset")
+    
+    # Direct File Uploader on Benchmark Page
+    custom_file_bench = st.file_uploader(
+        "Upload Industrial Sensor CSV Dataset to Evaluate Benchmarks on YOUR Data", 
+        type=["csv"], 
+        key="bench_custom_uploader"
     )
+    
+    if custom_file_bench is not None:
+        try:
+            df_direct = pd.read_csv(custom_file_bench)
+            if not df_direct.empty:
+                st.session_state["uploaded_custom_df"] = df_direct.copy()
+                st.session_state["uploaded_filename"] = custom_file_bench.name
+                uploaded_df = df_direct
+                uploaded_fname = custom_file_bench.name
+        except Exception as e:
+            st.error(f"⚠️ Unable to parse uploaded CSV file: {str(e)}")
+            
+    is_custom_active = False
+    custom_metrics = None
+    
+    if uploaded_df is not None:
+        feats = feature_names if feature_names else config.FEATURE_NAMES
+        custom_metrics = run_full_evaluation_on_custom_data(uploaded_df, feats)
+        if custom_metrics is not None:
+            is_custom_active = True
+            df_cv = custom_metrics["df_cv"]
+            df_bench = custom_metrics["df_holdout"]
 
-    if "YOUR Custom Uploaded CSV" in eval_mode:
-        st.markdown("### 🧪 Live 5-Fold Cross-Validation on Custom Dataset")
-        st.caption("Upload a CSV dataset containing your machine sensor telemetry and failure target ground-truth column (`target` or `Machine failure`).")
-
-        custom_file = st.file_uploader("Upload YOUR Machine Sensor CSV File for Live Cross Validation", type=["csv"], key="cv_custom_uploader")
-        
-        if custom_file is not None:
-            try:
-                df_user_raw = pd.read_csv(custom_file)
-                st.success(f"Loaded custom dataset containing {len(df_user_raw)} machine records.")
-                
-                from src.evaluate import run_live_cross_validation_on_custom_data
-                
-                with st.spinner("Executing 5-Fold Stratified Cross-Validation on YOUR dataset..."):
-                    df_user_cv = run_live_cross_validation_on_custom_data(df_user_raw, feature_names if feature_names else config.FEATURE_NAMES)
-                
-                if df_user_cv is not None and not df_user_cv.empty:
-                    st.markdown("#### 🏆 Live 5-Fold Cross-Validation Benchmark Report (YOUR Data)")
-                    st.dataframe(df_user_cv.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
-                    st.success("✅ Cross-validation completed successfully on your custom dataset!")
-                else:
-                    st.warning("⚠️ Could not detect a ground-truth failure column (`target` or `Machine failure`) or insufficient class samples (need at least 2 classes). SmartMaintain-XAI evaluated sensor telemetry for batch risk prediction.")
-            except Exception as err:
-                st.error(f"⚠️ Error evaluating custom file: {str(err)}")
-        else:
-            st.info("💡 Upload a CSV file above to compute live cross-validation metrics directly on your dataset.")
-        
-        st.markdown("---")
+    if is_custom_active and custom_metrics is not None:
+        col_b_info, col_b_btn = st.columns([3, 1])
+        with col_b_info:
+            st.markdown(f"""
+            <div style="background-color: #065F46; padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid #10B981; margin-bottom: 1.2rem;">
+                <h4 style="color: #6EE7B7; margin: 0 0 0.3rem 0;">⚡ LIVE BENCHMARK EVALUATION ACTIVE (YOUR DATASET)</h4>
+                <p style="color: #E2E8F0; margin: 0; font-size: 0.95rem;">
+                    All 5-Fold Cross Validation tables, holdout test metrics, class distributions, and confusion matrices below have been <b>dynamically calculated for '{uploaded_fname}'</b> ({len(uploaded_df)} machine records).
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_b_btn:
+            if st.button("🔄 Reset to Reference Baseline"):
+                st.session_state.pop("uploaded_custom_df", None)
+                st.session_state.pop("uploaded_filename", None)
+                st.rerun()
+    else:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.2rem; border-radius: 10px; border-left: 5px solid #38BDF8; margin-bottom: 1.5rem;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0;">ℹ️ Reference Baseline Model Benchmarks</h4>
+            <p style="color: #E2E8F0; margin: 0; font-size: 0.95rem;">
+                Below are the offline validation benchmark tables evaluated across <b>22,500 industrial machine telemetry records</b>. 
+                Upload your CSV dataset above to recalculate all benchmarks live on your data!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
     # 1. 5-Fold Stratified Cross-Validation Summary Table
-    st.markdown("### 🧪 Baseline 5-Fold Stratified Cross-Validation Benchmark Report")
-    st.caption("Evaluated across 5 distinct data folds on 22,500 baseline machine records.")
+    cv_title = "🧪 Live 5-Fold Stratified Cross-Validation Report (YOUR Data)" if is_custom_active else "🧪 Baseline 5-Fold Stratified Cross-Validation Benchmark Report"
+    st.markdown(f"### {cv_title}")
+    st.caption("Evaluates algorithm consistency across 5 distinct data folds to prevent overfitting.")
 
     if df_cv is not None and not df_cv.empty:
         st.dataframe(df_cv.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
@@ -795,8 +812,9 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
     st.markdown("---")
 
     # 2. Holdout Test Set Comparison Table
-    st.markdown("### 🏆 Baseline Holdout Test Set Model Comparison")
-    st.caption("Metrics loaded directly from verified evaluation report (`reports/model_comparison.csv`).")
+    holdout_title = "🏆 Live Holdout Test Set Model Comparison (YOUR Data)" if is_custom_active else "🏆 Baseline Holdout Test Set Model Comparison"
+    st.markdown(f"### {holdout_title}")
+    st.caption("Metrics calculated directly on holdout validation data.")
 
     if df_bench is not None and not df_bench.empty:
         st.dataframe(df_bench.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
@@ -814,22 +832,35 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
         In industrial machinery, failure events are naturally rare (~12.6% of evaluation dataset).
         
         **Why Accuracy Alone is Misleading**:
-        A dummy classifier predicting *"Normal"* for every machine would achieve **87.4% accuracy**, yet fail to detect 100% of broken machines. 
+        A dummy classifier predicting *"Normal"* for every machine would achieve high accuracy, yet fail to detect 100% of broken machines. 
         
         **Why F1-Score and Recall are Prioritized**:
         In predictive maintenance, a **False Negative** (missing a machine failure) results in catastrophic factory downtime and component destruction. Therefore, **Recall** and **F1-Score** are authoritative metrics for system validation.
         """)
         
     with col_imb2:
+        if is_custom_active and custom_metrics is not None:
+            n_cnt, f_cnt = custom_metrics["class_counts"]
+            total_c = n_cnt + f_cnt
+            n_pct = (n_cnt / total_c * 100) if total_c > 0 else 0
+            f_pct = (f_cnt / total_c * 100) if total_c > 0 else 0
+            dist_title = f"Uploaded Dataset Class Breakdown ({total_c} Records)"
+            dist_y = [n_cnt, f_cnt]
+            dist_text = [f"{n_cnt} ({n_pct:.1f}%)", f"{f_cnt} ({f_pct:.1f}%)"]
+        else:
+            dist_title = "Baseline Combined Dataset Class Breakdown (22,500 Records)"
+            dist_y = [19661, 2839]
+            dist_text = ["19,661 (87.4%)", "2,839 (12.6%)"]
+
         fig_dist = go.Figure(go.Bar(
             x=["Normal Operation (0)", "Failure Scenarios (1)"],
-            y=[19661, 2839],
+            y=dist_y,
             marker=dict(color=["#00CC96", "#FF4B4B"]),
-            text=["19,661 (87.4%)", "2,839 (12.6%)"],
+            text=dist_text,
             textposition="auto"
         ))
         fig_dist.update_layout(
-            title="Combined Dataset Class Breakdown (22,500 Records)",
+            title=dist_title,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             yaxis=dict(title="Sample Count", gridcolor="#333333"),
@@ -842,18 +873,22 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
     st.markdown("---")
 
     # Confusion Matrix Benchmark Cards
-    st.markdown("### 🧩 Algorithm Confusion Matrices")
+    cm_hdr = "🧩 Live Algorithm Confusion Matrices (YOUR Data)" if is_custom_active else "🧩 Algorithm Confusion Matrices (Reference Baseline)"
+    st.markdown(f"### {cm_hdr}")
     st.caption("Shows True Positives (TP), True Negatives (TN), False Positives (FP), and False Negatives (FN).")
 
     col_cm1, col_cm2 = st.columns(2)
     col_cm3, col_cm4 = st.columns(2)
 
-    cm_data = {
-        "Random Forest (Production Winner)": np.array([[4202, 25], [12, 561]]),
-        "XGBoost Classifier": np.array([[4195, 32], [12, 561]]),
-        "Decision Tree": np.array([[4157, 70], [17, 556]]),
-        "Logistic Regression": np.array([[3876, 351], [57, 516]])
-    }
+    if is_custom_active and custom_metrics is not None:
+        cm_data = custom_metrics["confusion_matrices"]
+    else:
+        cm_data = {
+            "Random Forest (Production Winner)": np.array([[4202, 25], [12, 561]]),
+            "XGBoost Classifier": np.array([[4195, 32], [12, 561]]),
+            "Decision Tree": np.array([[4157, 70], [17, 556]]),
+            "Logistic Regression": np.array([[3876, 351], [57, 516]])
+        }
 
     cols = [col_cm1, col_cm2, col_cm3, col_cm4]
     
