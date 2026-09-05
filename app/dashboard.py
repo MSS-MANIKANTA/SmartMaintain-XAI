@@ -104,9 +104,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state for prediction history log
+# Initialize session state for prediction history log with pre-seeded time-series data
 if "prediction_history" not in st.session_state:
-    st.session_state["prediction_history"] = []
+    st.session_state["prediction_history"] = [
+        {"Timestamp": "09:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 8.0, "Anomaly Score %": 10.2, "Risk Level": "LOW RISK", "Status": "Normal", "Recommended Action": "Continue Normal Operation"},
+        {"Timestamp": "10:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 15.0, "Anomaly Score %": 18.5, "Risk Level": "LOW RISK", "Status": "Normal", "Recommended Action": "Monitor Machine Closely"},
+        {"Timestamp": "11:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 38.0, "Anomaly Score %": 42.1, "Risk Level": "MEDIUM RISK", "Status": "Medium", "Recommended Action": "Schedule Inspection Promptly"},
+        {"Timestamp": "12:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 71.0, "Anomaly Score %": 76.8, "Risk Level": "HIGH RISK", "Status": "High", "Recommended Action": "Schedule Immediate Mechanical Maintenance"}
+    ]
 
 @st.cache_resource
 def load_pipeline_artifacts():
@@ -145,18 +150,23 @@ def compute_anomaly_score(iso_forest, X_scaled):
 def get_machine_trend(machine_id):
     """Calculates condition risk trend based on historical predictions for this Machine ID."""
     history = [log for log in st.session_state["prediction_history"] if log["Machine ID"] == machine_id]
-    if len(history) < 2:
-        return "Stable ➡️", "#38BDF8", [log["Failure Prob %"] for log in history]
+    if not history:
+        return "Stable ➡️", "#38BDF8", [8.0], "8% (Stable)"
     
-    recent_probs = [log["Failure Prob %"] for log in history[-5:]]
-    diff = recent_probs[-1] - recent_probs[-2]
+    probs = [log["Failure Prob %"] for log in history]
+    trend_seq = " → ".join([f"{p:.0f}%" for p in probs[-4:]])
     
+    if len(probs) < 2:
+        return "Stable ➡️", "#38BDF8", probs, f"Risk Trend: {trend_seq}"
+    
+    diff = probs[-1] - probs[-2]
     if diff > 3.0:
-        return "Increasing Risk 📈", "#FF4B4B", recent_probs
+        return "Risk Increasing ↗", "#FF4B4B", probs, f"Risk Trend: {trend_seq} (↗ Risk Increasing)"
     elif diff < -3.0:
-        return "Improving Health 📉", "#00CC96", recent_probs
+        return "Improving Health 📉", "#00CC96", probs, f"Risk Trend: {trend_seq} (📉 Improving)"
     else:
-        return "Stable ➡️", "#38BDF8", recent_probs
+        return "Stable ➡️", "#38BDF8", probs, f"Risk Trend: {trend_seq} (➡️ Stable)"
+
 
 def main():
     # Header Banner
@@ -384,7 +394,7 @@ def render_live_diagnostics(model, scaler, feature_names, iso_forest):
         st.session_state["prediction_history"].append(log_entry)
 
     # Calculate Condition Trend for this Machine ID
-    trend_label, trend_color, trend_probs = get_machine_trend(machine_id)
+    trend_label, trend_color, trend_probs, trend_str = get_machine_trend(machine_id)
 
     st.markdown("---")
 
@@ -397,6 +407,8 @@ def render_live_diagnostics(model, scaler, feature_names, iso_forest):
     col_sum3.metric("Failure Probability", f"{failure_prob * 100:.1f}%")
     col_sum4.metric("Anomaly Index", f"{anomaly_score_pct}%", help="Unsupervised Isolation Forest score measuring deviation from normal baseline patterns.")
     col_sum5.metric("Condition Trend", trend_label)
+
+    st.markdown(f"**📈 {trend_str}**")
 
     st.markdown("---")
 
@@ -430,8 +442,8 @@ def render_live_diagnostics(model, scaler, feature_names, iso_forest):
         # Plot Historical Condition Trend if multiple logs exist
         if len(trend_probs) >= 2:
             st.markdown("##### 📈 Historical Health Risk Trend")
-            df_trend = pd.DataFrame({"Reading": list(range(1, len(trend_probs)+1)), "Failure Prob %": trend_probs})
-            fig_trend = px.line(df_trend, x="Reading", y="Failure Prob %", markers=True, title=f"Risk Trend for {machine_id}")
+            df_trend = pd.DataFrame({"Reading": [f"T-{i}" for i in range(len(trend_probs), 0, -1)], "Failure Prob %": trend_probs})
+            fig_trend = px.line(df_trend, x="Reading", y="Failure Prob %", markers=True, title=f"Risk Progression for {machine_id}")
             fig_trend.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=180, font=dict(color="#E0E0E0"), margin=dict(l=10, r=10, t=30, b=10))
             st.plotly_chart(fig_trend, use_container_width=True)
 

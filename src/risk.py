@@ -39,46 +39,60 @@ def categorize_risk(failure_prob: float) -> Tuple[str, str, str, str]:
 
 def generate_maintenance_recommendation(risk_level: str, df_shap: pd.DataFrame) -> Dict[str, Any]:
     """
-    Generates actionable maintenance advice based on top positive SHAP failure drivers.
+    Generates actionable maintenance advice by mapping top positive SHAP failure drivers
+    to physical maintenance protocols.
     """
     if risk_level == "LOW RISK":
         return {
             "headline": "🟢 CONTINUE NORMAL OPERATION",
-            "action": "Routine preventive maintenance according to standard schedule.",
-            "details": ["All sensor parameters within normal operational bounds.", "No technician intervention required."]
+            "action": "Continue normal operation",
+            "details": [
+                "All sensor parameters within normal operational baseline.",
+                "Routine preventive maintenance according to standard schedule."
+            ]
         }
         
     # Find positive SHAP contributors (pushing toward failure)
     positive_drivers = df_shap[df_shap["shap_value"] > 0]
+    top_driver_ids = positive_drivers.head(3)["feature_id"].tolist() if not positive_drivers.empty else []
+    
+    has_torque = any("torque" in f for f in top_driver_ids)
+    has_temp = any("temp" in f for f in top_driver_ids)
+    has_wear = any("wear" in f for f in top_driver_ids)
+    has_speed = any("speed" in f or "rpm" in f for f in top_driver_ids)
     
     actions = []
-    if not positive_drivers.empty:
-        top_driver_ids = positive_drivers.head(3)["feature_id"].tolist()
+    
+    # Combined High Torque + Temperature special condition
+    if has_torque and has_temp:
+        actions.append("⚠️ **Combined High Torque + Temperature**: Prioritize immediate mechanical inspection of drive and cooling systems.")
+    else:
+        if has_torque:
+            actions.append("🔧 **High Torque Detected**: Inspect drive/load system and spindle bearings for mechanical strain.")
+        if has_temp:
+            actions.append("🌡️ **High Temperature Detected**: Inspect cooling and lubrication system, heat exchanger, and fluid lines.")
+            
+    if has_wear:
+        actions.append("🛠️ **Excessive Tool Wear**: Inspect or replace tooling inserts/assembly immediately.")
         
-        for feat in top_driver_ids:
-            if "temp" in feat:
-                actions.append("🌡️ **Cooling System**: Inspect process heat exchanger, check coolant flow rate, and clear ventilation filters.")
-            elif "torque" in feat:
-                actions.append("⚙️ **Drive Motor & Spindle**: Check mechanical torque limits, inspect drive belt tension and spindle bearings.")
-            elif "wear" in feat:
-                actions.append("🔧 **Cutting Tool Assembly**: High cumulative tool wear detected. Schedule tool insert/bit replacement.")
-            elif "speed" in feat:
-                actions.append("🔄 **RPM Regulator**: Calibrate motor drive controller and check for rotational speed oscillation.")
-            elif "power" in feat:
-                actions.append("⚡ **Power Supply**: Inspect motor electrical draw and verify power transmission efficiency.")
-                
+    if has_speed:
+        actions.append("🔄 **Over-Speed RPM**: Calibrate rotational speed regulator and motor controller.")
+        
     if not actions:
-        actions.append("🛠️ Conduct comprehensive mechanical and electrical diagnostic scan.")
+        actions.append("🛠️ **General Diagnostic**: Conduct comprehensive mechanical and electrical diagnostic scan.")
         
     if risk_level == "CRITICAL RISK":
-        headline = "🔴 IMMEDIATE MAINTENANCE REQUIRED"
+        headline = "🔴 CRITICAL RISK — IMMEDIATE MAINTENANCE REQUIRED"
     elif risk_level == "HIGH RISK":
-        headline = "🟠 SCHEDULE INSPECTION PROMPTLY"
+        headline = "🟠 HIGH RISK — SCHEDULE INSPECTION PROMPTLY"
     else:
-        headline = "🟡 MONITOR MACHINE CLOSELY"
+        headline = "🟡 MEDIUM RISK — MONITOR MACHINE CLOSELY"
         
+    top_driver_names = positive_drivers.head(2)["feature"].tolist() if not positive_drivers.empty else ["Multivariate Sensor Drift"]
+    
     return {
         "headline": headline,
-        "action": f"Top anomaly drivers: {', '.join(positive_drivers.head(2)['feature'].tolist()) if not positive_drivers.empty else 'Multivariate Sensor Drift'}",
+        "action": f"Top Failure Drivers: {', '.join(top_driver_names)}",
         "details": actions
     }
+
