@@ -76,3 +76,87 @@ def plot_confusion_matrices(models: Dict[str, Any], X_test: np.ndarray, y_test: 
     plt.savefig(cm_path, dpi=300)
     plt.close()
     print(f"Saved confusion matrices figure to {cm_path}")
+
+def run_live_cross_validation_on_custom_data(df_custom: pd.DataFrame, feature_names: list) -> pd.DataFrame:
+    """
+    Executes live 5-Fold Stratified Cross-Validation on a user-provided dataset.
+    """
+    from sklearn.model_selection import StratifiedKFold
+    from sklearn.ensemble import RandomForestClassifier
+    from xgboost import XGBClassifier
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    from src.data_prep import engineer_features
+
+    df_proc = engineer_features(df_custom)
+    
+    # Identify target column
+    target_col = None
+    for c in ["target", "Machine failure", "machine_failure", "Target", "Machine_failure"]:
+        if c in df_proc.columns:
+            target_col = c
+            break
+            
+    if target_col is None or len(df_proc) < 10:
+        return None
+        
+    for col in feature_names:
+        if col not in df_proc.columns:
+            df_proc[col] = 0.0
+
+    X = df_proc[feature_names].values
+    y = df_proc[target_col].values
+    
+    if len(np.unique(y)) < 2:
+        return None
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    candidate_models = {
+        "Random Forest": RandomForestClassifier(n_estimators=100, class_weight="balanced", random_state=42),
+        "XGBoost": XGBClassifier(n_estimators=100, eval_metric="logloss", random_state=42),
+        "Decision Tree": DecisionTreeClassifier(class_weight="balanced", random_state=42),
+        "Logistic Regression": LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)
+    }
+
+    n_splits = min(5, int(np.min(np.bincount(y.astype(int)))))
+    if n_splits < 2:
+        return None
+
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    results = []
+
+    for m_name, clf in candidate_models.items():
+        f1_list, recall_list, prec_list, acc_list, auc_list = [], [], [], [], []
+        
+        for train_idx, val_idx in skf.split(X_scaled, y):
+            X_tr, X_va = X_scaled[train_idx], X_scaled[val_idx]
+            y_tr, y_va = y[train_idx], y[val_idx]
+            
+            clf.fit(X_tr, y_tr)
+            y_pred = clf.predict(X_va)
+            y_prob = clf.predict_proba(X_va)[:, 1] if hasattr(clf, "predict_proba") else y_pred
+            
+            acc_list.append(accuracy_score(y_va, y_pred))
+            prec_list.append(precision_score(y_va, y_pred, zero_division=0))
+            recall_list.append(recall_score(y_va, y_pred, zero_division=0))
+            f1_list.append(f1_score(y_va, y_pred, zero_division=0))
+            try:
+                auc_list.append(roc_auc_score(y_va, y_prob))
+            except Exception:
+                auc_list.append(0.5)
+
+        results.append({
+            "Model": m_name,
+            "CV_Mean_F1": round(float(np.mean(f1_list)), 4),
+            "CV_Std_F1": round(float(np.std(f1_list)), 4),
+            "CV_Mean_Recall": round(float(np.mean(recall_list)), 4),
+            "CV_Mean_Precision": round(float(np.mean(prec_list)), 4),
+            "CV_Mean_Accuracy": round(float(np.mean(acc_list)), 4),
+            "CV_Mean_ROC_AUC": round(float(np.mean(auc_list)), 4)
+        })
+
+    return pd.DataFrame(results).sort_values("CV_Mean_F1", ascending=False).reset_index(drop=True)
+

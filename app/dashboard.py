@@ -236,7 +236,7 @@ def main():
     elif app_mode == "📁 Batch CSV Diagnostics":
         render_batch_diagnostics(model, scaler, feature_names, iso_forest)
     elif app_mode == "📈 Model Performance & Benchmarks":
-        render_benchmarks_and_theory(df_bench, df_cv)
+        render_benchmarks_and_theory(df_bench, df_cv, feature_names)
     else:
         render_methodology_and_flow()
 
@@ -728,16 +728,61 @@ def process_batch_dataframe(df_raw, model, scaler, feature_names, iso_forest, se
         </div>
         """, unsafe_allow_html=True)
 
-def render_benchmarks_and_theory(df_bench=None, df_cv=None):
+def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
     st.subheader("📈 Model Performance & 5-Fold Cross-Validation")
     
     st.markdown("""
-    > 🏆 **Model Selection Rationale**: **Random Forest** was selected as the primary production classifier because it achieved the top F1-score (**0.9651 Mean F1** across 5-Fold Cross Validation and **0.9703 F1** on holdout test set) on the multi-machine dataset.
-    """)
+    <div style="background-color: #1E293B; padding: 1.2rem; border-radius: 10px; border-left: 5px solid #38BDF8; margin-bottom: 1.5rem;">
+        <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0;">ℹ️ Why evaluate benchmarks before deployment?</h4>
+        <p style="color: #E2E8F0; margin: 0; font-size: 0.95rem;">
+            Before feeding your own machine telemetry into a predictive maintenance system, the underlying model must be rigorously validated offline. 
+            The benchmark tables below show the offline validation results evaluated across <b>22,500 industrial machine telemetry records</b>. 
+            You can also upload <b>YOUR OWN CSV dataset</b> below to run live 5-Fold Cross Validation directly on your data!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
+    eval_mode = st.radio(
+        "Select Benchmark Evaluation Mode",
+        [
+            "📊 Baseline Reference Benchmarks (Trained on 22,500 Industrial Records)",
+            "🧪 Run 5-Fold Cross-Validation on YOUR Custom Uploaded CSV Data"
+        ],
+        index=0
+    )
+
+    if "YOUR Custom Uploaded CSV" in eval_mode:
+        st.markdown("### 🧪 Live 5-Fold Cross-Validation on Custom Dataset")
+        st.caption("Upload a CSV dataset containing your machine sensor telemetry and failure target ground-truth column (`target` or `Machine failure`).")
+
+        custom_file = st.file_uploader("Upload YOUR Machine Sensor CSV File for Live Cross Validation", type=["csv"], key="cv_custom_uploader")
+        
+        if custom_file is not None:
+            try:
+                df_user_raw = pd.read_csv(custom_file)
+                st.success(f"Loaded custom dataset containing {len(df_user_raw)} machine records.")
+                
+                from src.evaluate import run_live_cross_validation_on_custom_data
+                
+                with st.spinner("Executing 5-Fold Stratified Cross-Validation on YOUR dataset..."):
+                    df_user_cv = run_live_cross_validation_on_custom_data(df_user_raw, feature_names if feature_names else config.FEATURE_NAMES)
+                
+                if df_user_cv is not None and not df_user_cv.empty:
+                    st.markdown("#### 🏆 Live 5-Fold Cross-Validation Benchmark Report (YOUR Data)")
+                    st.dataframe(df_user_cv.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
+                    st.success("✅ Cross-validation completed successfully on your custom dataset!")
+                else:
+                    st.warning("⚠️ Could not detect a ground-truth failure column (`target` or `Machine failure`) or insufficient class samples (need at least 2 classes). SmartMaintain-XAI evaluated sensor telemetry for batch risk prediction.")
+            except Exception as err:
+                st.error(f"⚠️ Error evaluating custom file: {str(err)}")
+        else:
+            st.info("💡 Upload a CSV file above to compute live cross-validation metrics directly on your dataset.")
+        
+        st.markdown("---")
+
     # 1. 5-Fold Stratified Cross-Validation Summary Table
-    st.markdown("### 🧪 5-Fold Stratified Cross-Validation Benchmark Report")
-    st.caption("Cross-validation evaluates consistency across 5 distinct data folds to prevent overfitting.")
+    st.markdown("### 🧪 Baseline 5-Fold Stratified Cross-Validation Benchmark Report")
+    st.caption("Evaluated across 5 distinct data folds on 22,500 baseline machine records.")
 
     if df_cv is not None and not df_cv.empty:
         st.dataframe(df_cv.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
@@ -750,7 +795,7 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None):
     st.markdown("---")
 
     # 2. Holdout Test Set Comparison Table
-    st.markdown("### 🏆 Holdout Test Set Model Comparison")
+    st.markdown("### 🏆 Baseline Holdout Test Set Model Comparison")
     st.caption("Metrics loaded directly from verified evaluation report (`reports/model_comparison.csv`).")
 
     if df_bench is not None and not df_bench.empty:
