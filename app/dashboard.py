@@ -48,168 +48,247 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Dark Industrial CSS Styling with Google Fonts (Inter & JetBrains Mono)
+# Custom Dark Industrial CSS Styling with Google Fonts & Glassmorphism Aesthetics
 st.markdown("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    /* Main Background Mesh */
     .stApp {
-        background-color: #0B0E14;
-        color: #FAFAFA;
-        font-family: 'Inter', -apple-system, sans-serif;
+        background: radial-gradient(circle at 50% -20%, #1E293B 0%, #0F172A 55%, #090D16 100%);
+        color: #F8FAFC;
     }
+    
+    /* Main Hero Header */
     .main-header {
-        background: linear-gradient(135deg, #111827 0%, #0F172A 100%);
-        padding: 1.5rem 2rem;
-        border-radius: 12px;
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        margin-bottom: 1.5rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
-    }
-    .command-stat-box {
-        background: linear-gradient(135deg, #111827 0%, #161C24 100%);
-        padding: 1.2rem 1.6rem;
-        border-radius: 10px;
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        font-family: 'JetBrains Mono', monospace;
-        margin-bottom: 1.5rem;
-    }
-    .badge-pill {
-        background-color: rgba(56, 189, 248, 0.15);
-        color: #38BDF8;
-        padding: 0.35rem 0.85rem;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 50%, rgba(14, 116, 144, 0.25) 100%);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 2.2rem 2.5rem;
         border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border: 1px solid rgba(56, 189, 248, 0.35);
-        display: inline-block;
-        margin-top: 0.5rem;
-        font-family: 'JetBrains Mono', monospace;
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        position: relative;
+        overflow: hidden;
     }
-    .recommendation-box {
-        background-color: #111827;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #38BDF8;
-        margin-top: 1rem;
+    
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #38BDF8 0%, #818CF8 50%, #10B981 100%);
+    }
+    
+    .header-title {
+        background: linear-gradient(90deg, #FFFFFF 0%, #38BDF8 40%, #818CF8 80%, #C084FC 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .header-subtitle {
+        color: #94A3B8;
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-top: 0.4rem;
+        margin-bottom: 1.1rem;
+        line-height: 1.5;
+    }
+    
+    /* Live Pulsing Dot */
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: #34D399;
+        text-transform: uppercase;
+        background: rgba(16, 185, 129, 0.12);
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        margin-bottom: 0.8rem;
+    }
+    
+    .pulsing-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #10B981;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse-green 1.8s infinite;
+    }
+    
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Badges */
+    .badge-pill {
+        background: rgba(56, 189, 248, 0.12);
+        color: #38BDF8;
+        padding: 0.4rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.84rem;
+        font-weight: 600;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-right: 0.5rem;
+        margin-top: 0.4rem;
+        transition: all 0.2s ease;
+    }
+    .badge-pill:hover {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: rgba(56, 189, 248, 0.5);
+    }
+    .badge-pill-success {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34D399;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+    .badge-pill-purple {
+        background: rgba(168, 85, 247, 0.12);
+        color: #C084FC;
+        border-color: rgba(168, 85, 247, 0.3);
+    }
+
+    /* Modern Glass Cards */
+    .glass-card {
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        padding: 1.6rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.45);
+        margin-bottom: 1.4rem;
     }
     .machine-spec-card {
-        background-color: #111827;
-        padding: 1rem 1.2rem;
-        border-radius: 10px;
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        margin-bottom: 1.2rem;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
+        padding: 1.4rem 1.8rem;
+        border-radius: 16px;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        margin-bottom: 1.6rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
+    .recommendation-box {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+        padding: 1.8rem 2rem;
+        border-radius: 16px;
+        border-left: 6px solid #38BDF8;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 1.4rem;
+        box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.65);
+    }
+
+    /* Metric Tiles */
+    .metric-tile {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 14px;
+        padding: 1.25rem 1.1rem;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        text-align: center;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .metric-tile:hover {
+        transform: translateY(-3px);
+        border-color: rgba(56, 189, 248, 0.45);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.15);
+    }
+    .metric-label {
+        color: #94A3B8;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.4rem;
+    }
+    .metric-val {
+        color: #F8FAFC;
+        font-size: 1.55rem;
+        font-weight: 800;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    /* Custom Streamlit Buttons */
     .stButton>button {
-        background-color: #0EA5E9;
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        border: none;
-        padding: 0.5rem 1.5rem;
-        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%);
+        color: #FFFFFF !important;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 0.65rem 1.8rem;
+        box-shadow: 0 4px 18px rgba(14, 165, 233, 0.35);
+        transition: all 0.25s ease;
+        letter-spacing: 0.01em;
     }
     .stButton>button:hover {
-        background-color: #0284C7;
+        background: linear-gradient(135deg, #0369A1 0%, #0284C7 100%);
+        box-shadow: 0 8px 25px rgba(14, 165, 233, 0.55);
         transform: translateY(-2px);
+    }
+    .stButton>button:active {
+        transform: translateY(0px);
+    }
+
+    /* Sidebar Refinements */
+    section[data-testid="stSidebar"] {
+        background: #090D16;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    section[data-testid="stSidebar"] .stRadio label {
+        font-weight: 600;
+        color: #E2E8F0;
+        font-size: 0.95rem;
+    }
+
+    /* Table & Dataframe Styling */
+    .dataframe {
+        border-radius: 12px !important;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    /* Code / Monospace Tags */
+    code {
+        font-family: 'JetBrains Mono', monospace !important;
+        background: rgba(30, 41, 59, 0.7) !important;
+        color: #38BDF8 !important;
+        padding: 0.15rem 0.45rem !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
     }
 </style>
 """, unsafe_allow_html=True)
-
-def create_3d_compressor_visualization(air_temp, proc_temp, speed_rpm, torque_nm, tool_wear, failure_prob, hex_color):
-    """
-    Generates a 3D WebGL Industrial Air Compressor & Telemetry Node Visualization using Plotly 3D geometry.
-    Performs interactive 3D WebGL rendering with glowing telemetry nodes positioned on mechanical components.
-    """
-    z_vals = np.linspace(-2, 2, 30)
-    theta_vals = np.linspace(0, 2 * np.pi, 30)
-    theta_grid, z_grid = np.meshgrid(theta_vals, z_vals)
-    r = 1.0
-    x_grid = r * np.cos(theta_grid)
-    y_grid = r * np.sin(theta_grid)
-
-    fig = go.Figure()
-
-    # 1. Main Compressor Housing Surface (Cylinder)
-    fig.add_trace(go.Surface(
-        x=x_grid, y=y_grid, z=z_grid,
-        colorscale=[[0, "#1E293B"], [0.5, hex_color], [1.0, "#0F172A"]],
-        opacity=0.75,
-        showscale=False,
-        hoverinfo="skip"
-    ))
-
-    # 2. Central Rotor Shaft
-    fig.add_trace(go.Scatter3d(
-        x=[0, 0], y=[0, 0], z=[-3, 3],
-        mode="lines",
-        line=dict(color="#38BDF8", width=10),
-        name="Central Rotor Shaft"
-    ))
-
-    # 3. Compression Turbine Impeller Disks
-    for z_pos in [-1.0, 0.0, 1.0]:
-        t_theta = np.linspace(0, 2 * np.pi, 16)
-        fig.add_trace(go.Scatter3d(
-            x=1.3 * np.cos(t_theta),
-            y=1.3 * np.sin(t_theta),
-            z=np.full_like(t_theta, z_pos),
-            mode="lines+markers",
-            marker=dict(size=4, color="#0EA5E9"),
-            line=dict(color="#0284C7", width=5),
-            showlegend=False
-        ))
-
-    # 4. Telemetry Sensor Node Markers positioned on 3D components
-    sensor_x = [0.0, 0.0, 1.1, -1.1]
-    sensor_y = [1.1, -1.1, 0.0, 0.0]
-    sensor_z = [1.5, -1.5, 0.5, -0.5]
-    sensor_labels = [
-        f"🌡️ Proc Temp Node: {proc_temp:.1f}°K (Air: {air_temp:.1f}°K)",
-        f"⚙️ Torque Motor Node: {torque_nm:.1f} Nm",
-        f"🔄 Speed Impeller Node: {speed_rpm} RPM",
-        f"🛠️ Tool Wear Valve Node: {tool_wear} min"
-    ]
-    sensor_colors = [
-        "#FF4B4B" if proc_temp > 315 else "#00CC96",
-        "#FF7A00" if torque_nm > 60 else "#38BDF8",
-        "#FFD166" if speed_rpm > 3000 else "#38BDF8",
-        "#FF4B4B" if tool_wear > 180 else "#00CC96"
-    ]
-
-    fig.add_trace(go.Scatter3d(
-        x=sensor_x, y=sensor_y, z=sensor_z,
-        mode="markers+text",
-        marker=dict(size=12, color=sensor_colors, symbol="diamond", line=dict(color="#FFFFFF", width=2)),
-        text=["Temp Node", "Torque Node", "RPM Node", "Wear Node"],
-        textposition="top center",
-        hovertext=sensor_labels,
-        hoverinfo="text",
-        name="3D Sensor Nodes"
-    ))
-
-    fig.update_layout(
-        title=dict(
-            text=f"<b>3D Industrial Compressor Telemetry Node Map ({failure_prob*100:.1f}% Risk)</b>",
-            font=dict(size=14, color="#FAFAFA")
-        ),
-        scene=dict(
-            xaxis=dict(visible=False),
-            yaxis=dict(visible=False),
-            zaxis=dict(visible=False),
-            bgcolor="rgba(0,0,0,0)",
-            camera=dict(eye=dict(x=1.7, y=1.7, z=1.2))
-        ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=40, b=10),
-        height=320,
-        font=dict(color="#E0E0E0")
-    )
-    return fig
-
 
 # Initialize session state for prediction history log with pre-seeded time-series data
 if "prediction_history" not in st.session_state:
@@ -268,9 +347,9 @@ def get_machine_trend(machine_id):
     
     diff = probs[-1] - probs[-2]
     if diff > 3.0:
-        return "Risk Increasing ↗", "#FF4B4B", probs, f"Risk Trend: {trend_seq} (↗ Risk Increasing)"
+        return "Risk Increasing ↗", "#EF4444", probs, f"Risk Trend: {trend_seq} (↗ Risk Increasing)"
     elif diff < -3.0:
-        return "Improving Health 📉", "#00CC96", probs, f"Risk Trend: {trend_seq} (📉 Improving)"
+        return "Improving Health 📉", "#10B981", probs, f"Risk Trend: {trend_seq} (📉 Improving)"
     else:
         return "Stable ➡️", "#38BDF8", probs, f"Risk Trend: {trend_seq} (➡️ Stable)"
 
@@ -284,44 +363,22 @@ def format_benchmark_table(df: pd.DataFrame):
     numeric_cols = [c for c in df.columns if c != "Model"]
     return df.style.highlight_max(subset=numeric_cols, axis=0, color='#1E3A8A')
 
-
-
 def main():
-    # Header Banner
+    # Hero Header Banner
     st.markdown("""
     <div class="main-header">
-        <h1 style="color: #F8FAFC; margin: 0; font-size: 2.2rem; font-weight: 800;">
-            ⚙️ SmartMaintain-XAI
-        </h1>
-        <p style="color: #94A3B8; margin-top: 0.2rem; font-size: 1.1rem; font-weight: 600;">
-            Industrial AI Command Center — Explainable Predictive Maintenance Platform
+        <div class="live-indicator">
+            <span class="pulsing-dot"></span> System Live & Operational • Dual ML Engine Active
+        </div>
+        <h1 class="header-title">⚙️ SmartMaintain-XAI</h1>
+        <p class="header-subtitle">
+            Enterprise Industrial Intelligence • Dual-Engine Failure & Anomaly Analytics • SHAP Root Cause Attribution
         </p>
-        <span class="badge-pill">
-            Level 1: Random Forest Classifier | Level 2: Isolation Forest Anomaly Detector | SHAP XAI Engine
-        </span>
-    </div>
-    <div class="command-stat-box">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">OVERALL MACHINE HEALTH</span>
-                <h3 style="color: #10B981; margin: 0; font-size: 1.5rem; font-weight: 700;">94.2%</h3>
-            </div>
-            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
-                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">ACTIVE ALERTS</span>
-                <h3 style="color: #F59E0B; margin: 0; font-size: 1.5rem; font-weight: 700;">03 ALERTS</h3>
-            </div>
-            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
-                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">MONITORED ASSETS</span>
-                <h3 style="color: #38BDF8; margin: 0; font-size: 1.5rem; font-weight: 700;">25 CATALOG</h3>
-            </div>
-            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
-                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">CLASSIFIER WINNER</span>
-                <h3 style="color: #38BDF8; margin: 0; font-size: 1.5rem; font-weight: 700;">RANDOM FOREST</h3>
-            </div>
-            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
-                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">EVALUATION CV</span>
-                <h3 style="color: #38BDF8; margin: 0; font-size: 1.5rem; font-weight: 700;">5-FOLD STRATIFIED</h3>
-            </div>
+        <div>
+            <span class="badge-pill">⚡ Level 1: Random Forest Classifier</span>
+            <span class="badge-pill">🔍 Level 2: Isolation Forest Anomaly Index</span>
+            <span class="badge-pill badge-pill-success">🏭 25 Equipment Machine Catalog</span>
+            <span class="badge-pill badge-pill-purple">🧠 SHAP Marginal Attribution</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -544,20 +601,54 @@ def render_live_diagnostics(model, scaler, feature_names, iso_forest):
     st.markdown("### 📊 Dual-Engine Health & Risk Assessment")
     col_sum1, col_sum2, col_sum3, col_sum4, col_sum5 = st.columns(5)
     
-    col_sum1.metric("Equipment Unit", f"{machine_id}")
-    col_sum2.metric("Maintenance Priority", risk_level, delta_color="off")
-    col_sum3.metric("Failure Probability", f"{failure_prob * 100:.1f}%")
-    col_sum4.metric("Anomaly Index", f"{anomaly_score_pct}%", help="Unsupervised Isolation Forest score measuring deviation from normal baseline patterns.")
-    col_sum5.metric("Condition Trend", trend_label)
+    with col_sum1:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Equipment Unit</div>
+            <div class="metric-val" style="color: #38BDF8;">{machine_id}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col_sum2:
+        st.markdown(f"""
+        <div class="metric-tile" style="border-color: {hex_color}66; background: rgba(15, 23, 42, 0.85);">
+            <div class="metric-label">Maintenance Priority</div>
+            <div class="metric-val" style="color: {hex_color}; font-size: 1.25rem;">{risk_level}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # 6. 3D Visualization, SHAP Explanation, Gauges & Trend
+    with col_sum3:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Failure Probability</div>
+            <div class="metric-val" style="color: {hex_color};">{failure_prob * 100:.1f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_sum4:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Anomaly Index</div>
+            <div class="metric-val" style="color: #818CF8;">{anomaly_score_pct}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_sum5:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Condition Trend</div>
+            <div class="metric-val" style="color: {trend_color}; font-size: 1.2rem;">{trend_label}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(f"<div style='margin-top: 0.8rem; background: rgba(30, 41, 59, 0.6); padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); text-align: center;'><b>📈 {trend_str}</b></div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # 6. SHAP Explanation, Anomaly Gauge & Trend Chart
     col_res1, col_res2 = st.columns([1, 1.2])
 
     with col_res1:
-        st.markdown("#### 🏭 3D Industrial Machine Telemetry Visualization")
-        fig_3d = create_3d_compressor_visualization(air_temp, proc_temp, speed, torque, wear, failure_prob, hex_color)
-        st.plotly_chart(fig_3d, use_container_width=True)
-
         st.markdown("#### Dual-Engine Gauges & Condition Trend")
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number",
@@ -991,16 +1082,17 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
         fig_dist = go.Figure(go.Bar(
             x=["Normal Operation (0)", "Failure Scenarios (1)"],
             y=dist_y,
-            marker=dict(color=["#00CC96", "#FF4B4B"]),
+            marker=dict(color=["#10B981", "#EF4444"], line=dict(color="rgba(255,255,255,0.15)", width=1)),
             text=dist_text,
             textposition="auto"
         ))
         fig_dist.update_layout(
-            title=dist_title,
+            title=dict(text=f"<b>{dist_title}</b>", font=dict(color="#F8FAFC")),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            yaxis=dict(title="Sample Count", gridcolor="#333333"),
-            font=dict(color="#E0E0E0"),
+            yaxis=dict(title="Sample Count", gridcolor="rgba(255,255,255,0.08)"),
+            xaxis=dict(gridcolor="rgba(255,255,255,0.08)"),
+            font=dict(family="Plus Jakarta Sans, sans-serif", color="#CBD5E1"),
             height=260,
             margin=dict(l=20, r=20, t=40, b=20)
         )
@@ -1037,12 +1129,12 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
                 x=["Normal (0)", "Failure (1)"],
                 y=["Normal (0)", "Failure (1)"],
                 color_continuous_scale="Blues",
-                title=f"<b>{name} Confusion Matrix</b>"
+                title=f"<b>{name}</b>"
             )
             fig_cm.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#E0E0E0"),
+                font=dict(family="Plus Jakarta Sans, sans-serif", color="#CBD5E1"),
                 height=260,
                 margin=dict(l=20, r=20, t=40, b=20)
             )
