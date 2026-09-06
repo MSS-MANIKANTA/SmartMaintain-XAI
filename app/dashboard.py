@@ -48,41 +48,55 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Dark Industrial CSS Styling
+# Custom Dark Industrial CSS Styling with Google Fonts (Inter & JetBrains Mono)
 st.markdown("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
 <style>
     .stApp {
-        background-color: #0E1117;
+        background-color: #0B0E14;
         color: #FAFAFA;
+        font-family: 'Inter', -apple-system, sans-serif;
     }
     .main-header {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        background: linear-gradient(135deg, #111827 0%, #0F172A 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.2);
         margin-bottom: 1.5rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+    }
+    .command-stat-box {
+        background: linear-gradient(135deg, #111827 0%, #161C24 100%);
+        padding: 1.2rem 1.6rem;
+        border-radius: 10px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        font-family: 'JetBrains Mono', monospace;
+        margin-bottom: 1.5rem;
     }
     .badge-pill {
         background-color: rgba(56, 189, 248, 0.15);
         color: #38BDF8;
-        padding: 0.3rem 0.8rem;
+        padding: 0.35rem 0.85rem;
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 600;
-        border: 1px solid rgba(56, 189, 248, 0.3);
+        border: 1px solid rgba(56, 189, 248, 0.35);
         display: inline-block;
         margin-top: 0.5rem;
+        font-family: 'JetBrains Mono', monospace;
     }
     .recommendation-box {
-        background-color: #1E293B;
+        background-color: #111827;
         padding: 1.5rem;
         border-radius: 10px;
         border-left: 5px solid #38BDF8;
         margin-top: 1rem;
     }
     .machine-spec-card {
-        background-color: #1E293B;
+        background-color: #111827;
         padding: 1rem 1.2rem;
         border-radius: 10px;
         border: 1px solid rgba(56, 189, 248, 0.2);
@@ -103,6 +117,99 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+def create_3d_compressor_visualization(air_temp, proc_temp, speed_rpm, torque_nm, tool_wear, failure_prob, hex_color):
+    """
+    Generates a 3D WebGL Industrial Air Compressor & Telemetry Node Visualization using Plotly 3D geometry.
+    Performs interactive 3D WebGL rendering with glowing telemetry nodes positioned on mechanical components.
+    """
+    z_vals = np.linspace(-2, 2, 30)
+    theta_vals = np.linspace(0, 2 * np.pi, 30)
+    theta_grid, z_grid = np.meshgrid(theta_vals, z_vals)
+    r = 1.0
+    x_grid = r * np.cos(theta_grid)
+    y_grid = r * np.sin(theta_grid)
+
+    fig = go.Figure()
+
+    # 1. Main Compressor Housing Surface (Cylinder)
+    fig.add_trace(go.Surface(
+        x=x_grid, y=y_grid, z=z_grid,
+        colorscale=[[0, "#1E293B"], [0.5, hex_color], [1.0, "#0F172A"]],
+        opacity=0.75,
+        showscale=False,
+        hoverinfo="skip"
+    ))
+
+    # 2. Central Rotor Shaft
+    fig.add_trace(go.Scatter3d(
+        x=[0, 0], y=[0, 0], z=[-3, 3],
+        mode="lines",
+        line=dict(color="#38BDF8", width=10),
+        name="Central Rotor Shaft"
+    ))
+
+    # 3. Compression Turbine Impeller Disks
+    for z_pos in [-1.0, 0.0, 1.0]:
+        t_theta = np.linspace(0, 2 * np.pi, 16)
+        fig.add_trace(go.Scatter3d(
+            x=1.3 * np.cos(t_theta),
+            y=1.3 * np.sin(t_theta),
+            z=np.full_like(t_theta, z_pos),
+            mode="lines+markers",
+            marker=dict(size=4, color="#0EA5E9"),
+            line=dict(color="#0284C7", width=5),
+            showlegend=False
+        ))
+
+    # 4. Telemetry Sensor Node Markers positioned on 3D components
+    sensor_x = [0.0, 0.0, 1.1, -1.1]
+    sensor_y = [1.1, -1.1, 0.0, 0.0]
+    sensor_z = [1.5, -1.5, 0.5, -0.5]
+    sensor_labels = [
+        f"🌡️ Proc Temp Node: {proc_temp:.1f}°K (Air: {air_temp:.1f}°K)",
+        f"⚙️ Torque Motor Node: {torque_nm:.1f} Nm",
+        f"🔄 Speed Impeller Node: {speed_rpm} RPM",
+        f"🛠️ Tool Wear Valve Node: {tool_wear} min"
+    ]
+    sensor_colors = [
+        "#FF4B4B" if proc_temp > 315 else "#00CC96",
+        "#FF7A00" if torque_nm > 60 else "#38BDF8",
+        "#FFD166" if speed_rpm > 3000 else "#38BDF8",
+        "#FF4B4B" if tool_wear > 180 else "#00CC96"
+    ]
+
+    fig.add_trace(go.Scatter3d(
+        x=sensor_x, y=sensor_y, z=sensor_z,
+        mode="markers+text",
+        marker=dict(size=12, color=sensor_colors, symbol="diamond", line=dict(color="#FFFFFF", width=2)),
+        text=["Temp Node", "Torque Node", "RPM Node", "Wear Node"],
+        textposition="top center",
+        hovertext=sensor_labels,
+        hoverinfo="text",
+        name="3D Sensor Nodes"
+    ))
+
+    fig.update_layout(
+        title=dict(
+            text=f"<b>3D Industrial Compressor Telemetry Node Map ({failure_prob*100:.1f}% Risk)</b>",
+            font=dict(size=14, color="#FAFAFA")
+        ),
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor="rgba(0,0,0,0)",
+            camera=dict(eye=dict(x=1.7, y=1.7, z=1.2))
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=10, r=10, t=40, b=10),
+        height=320,
+        font=dict(color="#E0E0E0")
+    )
+    return fig
+
 
 # Initialize session state for prediction history log with pre-seeded time-series data
 if "prediction_history" not in st.session_state:
@@ -187,11 +294,35 @@ def main():
             ⚙️ SmartMaintain-XAI
         </h1>
         <p style="color: #94A3B8; margin-top: 0.2rem; font-size: 1.1rem; font-weight: 600;">
-            Explainable AI-Based Predictive Maintenance System (Dual-Engine ML + 25 Machine Models)
+            Industrial AI Command Center — Explainable Predictive Maintenance Platform
         </p>
         <span class="badge-pill">
-            Level 1: Random Forest Classifier | Level 2: Isolation Forest Anomaly Detector | SHAP XAI
+            Level 1: Random Forest Classifier | Level 2: Isolation Forest Anomaly Detector | SHAP XAI Engine
         </span>
+    </div>
+    <div class="command-stat-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">OVERALL MACHINE HEALTH</span>
+                <h3 style="color: #10B981; margin: 0; font-size: 1.5rem; font-weight: 700;">94.2%</h3>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
+                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">ACTIVE ALERTS</span>
+                <h3 style="color: #F59E0B; margin: 0; font-size: 1.5rem; font-weight: 700;">03 ALERTS</h3>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
+                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">MONITORED ASSETS</span>
+                <h3 style="color: #38BDF8; margin: 0; font-size: 1.5rem; font-weight: 700;">25 CATALOG</h3>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
+                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">CLASSIFIER WINNER</span>
+                <h3 style="color: #38BDF8; margin: 0; font-size: 1.5rem; font-weight: 700;">RANDOM FOREST</h3>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.2rem;">
+                <span style="color: #94A3B8; font-size: 0.8rem; font-family: 'Inter', sans-serif;">EVALUATION CV</span>
+                <h3 style="color: #38BDF8; margin: 0; font-size: 1.5rem; font-weight: 700;">5-FOLD STRATIFIED</h3>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -419,14 +550,14 @@ def render_live_diagnostics(model, scaler, feature_names, iso_forest):
     col_sum4.metric("Anomaly Index", f"{anomaly_score_pct}%", help="Unsupervised Isolation Forest score measuring deviation from normal baseline patterns.")
     col_sum5.metric("Condition Trend", trend_label)
 
-    st.markdown(f"**📈 {trend_str}**")
-
-    st.markdown("---")
-
-    # 6. SHAP Explanation, Anomaly Gauge & Trend Chart
+    # 6. 3D Visualization, SHAP Explanation, Gauges & Trend
     col_res1, col_res2 = st.columns([1, 1.2])
 
     with col_res1:
+        st.markdown("#### 🏭 3D Industrial Machine Telemetry Visualization")
+        fig_3d = create_3d_compressor_visualization(air_temp, proc_temp, speed, torque, wear, failure_prob, hex_color)
+        st.plotly_chart(fig_3d, use_container_width=True)
+
         st.markdown("#### Dual-Engine Gauges & Condition Trend")
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number",
