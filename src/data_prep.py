@@ -208,11 +208,7 @@ def generate_multi_machine_dataset(samples_per_machine: int = 500, random_state:
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """Engineers physics and machine-relative stress features for predictive maintenance with robust column mapping & deduplication."""
     data = df.copy()
-    
-    # 0. Reset row index to ensure clean unique 0..N-1 row index labels
     data = data.reset_index(drop=True)
-    
-    # 0b. Deduplicate initial column labels
     data = data.loc[:, ~data.columns.duplicated()].copy()
     
     # 1. Normalize column names cleanly using fuzzy & exact mapping
@@ -240,56 +236,47 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
     if norm_cols:
         data = data.rename(columns=norm_cols)
-        # Deduplicate again in case multiple original columns mapped to the same target name
         data = data.loc[:, ~data.columns.duplicated()].copy()
 
-    # Defaults for missing essential features
-    defaults = {
-        "air_temperature_k": 300.0,
-        "process_temperature_k": 310.0,
-        "rotational_speed_rpm": 1500,
-        "torque_nm": 40.0,
-        "tool_wear_min": 0,
-        "type": "M"
-    }
-    for col_name, def_val in defaults.items():
-        if col_name not in data.columns:
-            data[col_name] = def_val
+    def get_vec(c_name, default_v):
+        if c_name in data.columns:
+            val = data[c_name]
+            if isinstance(val, pd.DataFrame):
+                val = val.iloc[:, 0]
+            return pd.to_numeric(val, errors="coerce").fillna(default_v).values
+        else:
+            return np.full(len(data), default_v)
 
-    def extract_vector(df_in, c_name, def_v):
-        if c_name not in df_in.columns:
-            return np.full(len(df_in), def_v)
-        val = df_in[c_name]
-        if isinstance(val, pd.DataFrame):
-            val = val.iloc[:, 0]
-        return pd.to_numeric(val, errors="coerce").fillna(def_v).values
+    air_t = get_vec("air_temperature_k", 300.0)
+    proc_t = get_vec("process_temperature_k", 310.0)
+    speed_rpm = get_vec("rotational_speed_rpm", 1500.0)
+    torque_v = get_vec("torque_nm", 40.0)
+    wear_v = get_vec("tool_wear_min", 0.0)
 
-    air_t = extract_vector(data, "air_temperature_k", 300.0)
-    proc_t = extract_vector(data, "process_temperature_k", 310.0)
-    speed_rpm = extract_vector(data, "rotational_speed_rpm", 1500.0)
-    torque_v = extract_vector(data, "torque_nm", 40.0)
-    wear_v = extract_vector(data, "tool_wear_min", 0.0)
+    # Build fresh output dataframe from scratch to prevent any pandas reindexing/duplicate label errors
+    res = pd.DataFrame(index=range(len(data)))
 
-    # Clean back onto dataframe columns
-    data["air_temperature_k"] = air_t
-    data["process_temperature_k"] = proc_t
-    data["rotational_speed_rpm"] = speed_rpm
-    data["torque_nm"] = torque_v
-    data["tool_wear_min"] = wear_v
+    # Preserve target if present
+    if "target" in data.columns:
+        t_val = data["target"]
+        if isinstance(t_val, pd.DataFrame):
+            t_val = t_val.iloc[:, 0]
+        res["target"] = pd.to_numeric(t_val, errors="coerce").fillna(0).astype(int).values
 
-    # 1. Temperature difference (Heat dissipation indicator)
-    data["temp_difference_k"] = proc_t - air_t
-    
-    # 2. Mechanical Power output (kW): Power = (2 * pi * N * T) / 60000
-    data["power_kw"] = (2 * math.pi * speed_rpm * torque_v) / 60000.0
-    
-    # 3. Tool wear rate relative to rotational speed
-    data["wear_rate"] = wear_v / (speed_rpm + 1e-5)
-    
-    # 4. Temperature to Torque ratio
-    data["temp_torque_ratio"] = proc_t / (torque_v + 1e-5)
+    # Base features
+    res["air_temperature_k"] = air_t
+    res["process_temperature_k"] = proc_t
+    res["rotational_speed_rpm"] = speed_rpm
+    res["torque_nm"] = torque_v
+    res["tool_wear_min"] = wear_v
 
-    # 5. Machine-Relative Stress Ratios (Normalizing against machine specs)
+    # Physics features
+    res["temp_difference_k"] = proc_t - air_t
+    res["power_kw"] = (2 * math.pi * speed_rpm * torque_v) / 60000.0
+    res["wear_rate"] = wear_v / (speed_rpm + 1e-5)
+    res["temp_torque_ratio"] = proc_t / (torque_v + 1e-5)
+
+    # Machine-Relative Stress Ratios
     rpm_max_vals = []
     torque_max_vals = []
     wear_max_vals = []
@@ -320,28 +307,26 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         wear_max_vals.append(w_max)
         temp_max_vals.append(p_max)
 
-    data["rpm_stress"] = speed_rpm / (np.array(rpm_max_vals) + 1e-5)
-    data["torque_stress"] = torque_v / (np.array(torque_max_vals) + 1e-5)
-    data["wear_stress"] = wear_v / (np.array(wear_max_vals) + 1e-5)
-    data["temp_stress"] = proc_t / (np.array(temp_max_vals) + 1e-5)
+    res["rpm_stress"] = speed_rpm / (np.array(rpm_max_vals) + 1e-5)
+    res["torque_stress"] = torque_v / (np.array(torque_max_vals) + 1e-5)
+    res["wear_stress"] = wear_v / (np.array(wear_max_vals) + 1e-5)
+    res["temp_stress"] = proc_t / (np.array(temp_max_vals) + 1e-5)
 
-    
-    # Safe One-hot encoding for machine quality 'type' (L, M, H)
-    for t_col in ["type_H", "type_L", "type_M"]:
-        if t_col not in data.columns:
-            data[t_col] = 0
+    # Quality type One-Hot encoding
+    res["type_H"] = 0
+    res["type_L"] = 0
+    res["type_M"] = 1
 
     if "type" in data.columns:
-        type_dummies = pd.get_dummies(data["type"].astype(str), prefix="type", dtype=int)
-        for t_col in ["type_H", "type_L", "type_M"]:
-            if t_col in type_dummies.columns:
-                data[t_col] = type_dummies[t_col]
-        data = data.drop(columns=["type"])
+        t_col_val = data["type"]
+        if isinstance(t_col_val, pd.DataFrame):
+            t_col_val = t_col_val.iloc[:, 0]
+        type_dummies = pd.get_dummies(t_col_val.astype(str), prefix="type", dtype=int)
+        for tc in ["type_H", "type_L", "type_M"]:
+            if tc in type_dummies.columns:
+                res[tc] = type_dummies[tc].values
 
-    # Final deduplication check to prevent any downstream pandas reindexing errors
-    data = data.loc[:, ~data.columns.duplicated()].copy()
-    
-    return data
+    return res
 
 def get_processed_data(force_reprocess: bool = False) -> pd.DataFrame:
     """Orchestrates data downloading, synthetic generation, feature engineering, and saving to disk."""
