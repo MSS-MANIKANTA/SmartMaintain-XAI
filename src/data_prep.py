@@ -209,7 +209,10 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """Engineers physics and machine-relative stress features for predictive maintenance with robust column mapping & deduplication."""
     data = df.copy()
     
-    # 0. Deduplicate initial column labels
+    # 0. Reset row index to ensure clean unique 0..N-1 row index labels
+    data = data.reset_index(drop=True)
+    
+    # 0b. Deduplicate initial column labels
     data = data.loc[:, ~data.columns.duplicated()].copy()
     
     # 1. Normalize column names cleanly using fuzzy & exact mapping
@@ -252,24 +255,39 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     for col_name, def_val in defaults.items():
         if col_name not in data.columns:
             data[col_name] = def_val
-        data[col_name] = data[col_name].fillna(def_val)
 
-    # Convert numeric columns safely
-    num_cols = ["air_temperature_k", "process_temperature_k", "rotational_speed_rpm", "torque_nm", "tool_wear_min"]
-    for nc in num_cols:
-        data[nc] = pd.to_numeric(data[nc], errors="coerce").fillna(defaults[nc])
+    def extract_vector(df_in, c_name, def_v):
+        if c_name not in df_in.columns:
+            return np.full(len(df_in), def_v)
+        val = df_in[c_name]
+        if isinstance(val, pd.DataFrame):
+            val = val.iloc[:, 0]
+        return pd.to_numeric(val, errors="coerce").fillna(def_v).values
+
+    air_t = extract_vector(data, "air_temperature_k", 300.0)
+    proc_t = extract_vector(data, "process_temperature_k", 310.0)
+    speed_rpm = extract_vector(data, "rotational_speed_rpm", 1500.0)
+    torque_v = extract_vector(data, "torque_nm", 40.0)
+    wear_v = extract_vector(data, "tool_wear_min", 0.0)
+
+    # Clean back onto dataframe columns
+    data["air_temperature_k"] = air_t
+    data["process_temperature_k"] = proc_t
+    data["rotational_speed_rpm"] = speed_rpm
+    data["torque_nm"] = torque_v
+    data["tool_wear_min"] = wear_v
 
     # 1. Temperature difference (Heat dissipation indicator)
-    data["temp_difference_k"] = data["process_temperature_k"] - data["air_temperature_k"]
+    data["temp_difference_k"] = proc_t - air_t
     
     # 2. Mechanical Power output (kW): Power = (2 * pi * N * T) / 60000
-    data["power_kw"] = (2 * math.pi * data["rotational_speed_rpm"] * data["torque_nm"]) / 60000.0
+    data["power_kw"] = (2 * math.pi * speed_rpm * torque_v) / 60000.0
     
     # 3. Tool wear rate relative to rotational speed
-    data["wear_rate"] = data["tool_wear_min"] / (data["rotational_speed_rpm"] + 1e-5)
+    data["wear_rate"] = wear_v / (speed_rpm + 1e-5)
     
     # 4. Temperature to Torque ratio
-    data["temp_torque_ratio"] = data["process_temperature_k"] / (data["torque_nm"] + 1e-5)
+    data["temp_torque_ratio"] = proc_t / (torque_v + 1e-5)
 
     # 5. Machine-Relative Stress Ratios (Normalizing against machine specs)
     rpm_max_vals = []
@@ -277,10 +295,19 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     wear_max_vals = []
     temp_max_vals = []
 
-    for idx, row in data.iterrows():
-        m_type = row.get("Machine_Type", row.get("machine_type", None))
-        if pd.notna(m_type) and str(m_type) in config.MACHINE_25_SPECS:
-            specs = config.MACHINE_25_SPECS[str(m_type)]
+    for idx in range(len(data)):
+        m_type = None
+        if "Machine_Type" in data.columns:
+            m_val = data["Machine_Type"].iloc[idx]
+            if pd.notna(m_val):
+                m_type = str(m_val)
+        elif "machine_type" in data.columns:
+            m_val = data["machine_type"].iloc[idx]
+            if pd.notna(m_val):
+                m_type = str(m_val)
+
+        if m_type and m_type in config.MACHINE_25_SPECS:
+            specs = config.MACHINE_25_SPECS[m_type]
             r_max = specs["rpm"][1]
             t_max = specs["torque"][1]
             w_max = specs["wear"][1]
@@ -293,10 +320,11 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         wear_max_vals.append(w_max)
         temp_max_vals.append(p_max)
 
-    data["rpm_stress"] = data["rotational_speed_rpm"] / (np.array(rpm_max_vals) + 1e-5)
-    data["torque_stress"] = data["torque_nm"] / (np.array(torque_max_vals) + 1e-5)
-    data["wear_stress"] = data["tool_wear_min"] / (np.array(wear_max_vals) + 1e-5)
-    data["temp_stress"] = data["process_temperature_k"] / (np.array(temp_max_vals) + 1e-5)
+    data["rpm_stress"] = speed_rpm / (np.array(rpm_max_vals) + 1e-5)
+    data["torque_stress"] = torque_v / (np.array(torque_max_vals) + 1e-5)
+    data["wear_stress"] = wear_v / (np.array(wear_max_vals) + 1e-5)
+    data["temp_stress"] = proc_t / (np.array(temp_max_vals) + 1e-5)
+
     
     # Safe One-hot encoding for machine quality 'type' (L, M, H)
     for t_col in ["type_H", "type_L", "type_M"]:
