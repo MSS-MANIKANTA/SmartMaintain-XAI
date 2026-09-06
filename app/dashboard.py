@@ -167,6 +167,17 @@ def get_machine_trend(machine_id):
     else:
         return "Stable ➡️", "#38BDF8", probs, f"Risk Trend: {trend_seq} (➡️ Stable)"
 
+def format_benchmark_table(df: pd.DataFrame):
+    """
+    Highlights maximum values ONLY in numeric columns to prevent string column 'Model'
+    from highlighting 'XGBoost' alphabetically over 'Random Forest'.
+    """
+    if df is None or df.empty:
+        return df
+    numeric_cols = [c for c in df.columns if c != "Model"]
+    return df.style.highlight_max(subset=numeric_cols, axis=0, color='#1E3A8A')
+
+
 
 def main():
     # Header Banner
@@ -802,10 +813,10 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
     st.caption("Evaluates algorithm consistency across 5 distinct data folds to prevent overfitting.")
 
     if df_cv is not None and not df_cv.empty:
-        st.dataframe(df_cv.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
+        st.dataframe(format_benchmark_table(df_cv), use_container_width=True)
     elif config.CROSS_VAL_PATH.exists():
         df_cv_load = pd.read_csv(config.CROSS_VAL_PATH)
-        st.dataframe(df_cv_load.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
+        st.dataframe(format_benchmark_table(df_cv_load), use_container_width=True)
     else:
         st.info("Run `python -m src.train` to generate 5-Fold Cross-Validation report.")
 
@@ -817,10 +828,10 @@ def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
     st.caption("Metrics calculated directly on holdout validation data.")
 
     if df_bench is not None and not df_bench.empty:
-        st.dataframe(df_bench.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
+        st.dataframe(format_benchmark_table(df_bench), use_container_width=True)
     elif config.MODEL_COMPARISON_PATH.exists():
         df_comp = pd.read_csv(config.MODEL_COMPARISON_PATH)
-        st.dataframe(df_comp.style.highlight_max(axis=0, color='#1E3A8A'), use_container_width=True)
+        st.dataframe(format_benchmark_table(df_comp), use_container_width=True)
 
     st.markdown("---")
 
