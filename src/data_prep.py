@@ -206,32 +206,39 @@ def generate_multi_machine_dataset(samples_per_machine: int = 500, random_state:
     return df
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Engineers physics and machine-relative stress features for predictive maintenance."""
+    """Engineers physics and machine-relative stress features for predictive maintenance with robust column mapping & deduplication."""
     data = df.copy()
     
-    # Normalize column names cleanly
+    # 0. Deduplicate initial column labels
+    data = data.loc[:, ~data.columns.duplicated()].copy()
+    
+    # 1. Normalize column names cleanly using fuzzy & exact mapping
     norm_cols = {}
     for col in data.columns:
         c_clean = str(col).strip()
+        c_lower = c_clean.lower()
+        
         if c_clean in config.COLUMN_MAPPING:
             norm_cols[col] = config.COLUMN_MAPPING[c_clean]
-        else:
-            c_lower = c_clean.lower()
-            if "process" in c_lower and "process_temperature_k" not in data.columns:
-                norm_cols[col] = "process_temperature_k"
-            elif "air" in c_lower and "air_temperature_k" not in data.columns:
-                norm_cols[col] = "air_temperature_k"
-            elif ("rotation" in c_lower or "speed" in c_lower or "rpm" in c_lower) and "rotational_speed_rpm" not in data.columns:
-                norm_cols[col] = "rotational_speed_rpm"
-            elif ("torque" in c_lower or "nm" in c_lower) and "torque_nm" not in data.columns:
-                norm_cols[col] = "torque_nm"
-            elif "wear" in c_lower and "tool_wear_min" not in data.columns:
-                norm_cols[col] = "tool_wear_min"
-            elif (c_lower == "type" or "quality" in c_lower) and "type" not in data.columns:
-                norm_cols[col] = "type"
+        elif ("process" in c_lower or "proc" in c_lower) and "temp" in c_lower:
+            norm_cols[col] = "process_temperature_k"
+        elif "air" in c_lower and "temp" in c_lower:
+            norm_cols[col] = "air_temperature_k"
+        elif "speed" in c_lower or "rpm" in c_lower or "rotation" in c_lower:
+            norm_cols[col] = "rotational_speed_rpm"
+        elif "torque" in c_lower or "nm" in c_lower:
+            norm_cols[col] = "torque_nm"
+        elif "wear" in c_lower or "tool" in c_lower:
+            norm_cols[col] = "tool_wear_min"
+        elif c_lower in ["type", "quality", "variant", "product_type"]:
+            norm_cols[col] = "type"
+        elif c_lower in ["machine failure", "failure", "target", "target_col", "machine_failure"]:
+            norm_cols[col] = "target"
 
     if norm_cols:
         data = data.rename(columns=norm_cols)
+        # Deduplicate again in case multiple original columns mapped to the same target name
+        data = data.loc[:, ~data.columns.duplicated()].copy()
 
     # Defaults for missing essential features
     defaults = {
@@ -246,6 +253,11 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         if col_name not in data.columns:
             data[col_name] = def_val
         data[col_name] = data[col_name].fillna(def_val)
+
+    # Convert numeric columns safely
+    num_cols = ["air_temperature_k", "process_temperature_k", "rotational_speed_rpm", "torque_nm", "tool_wear_min"]
+    for nc in num_cols:
+        data[nc] = pd.to_numeric(data[nc], errors="coerce").fillna(defaults[nc])
 
     # 1. Temperature difference (Heat dissipation indicator)
     data["temp_difference_k"] = data["process_temperature_k"] - data["air_temperature_k"]
@@ -286,14 +298,20 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     data["wear_stress"] = data["tool_wear_min"] / (np.array(wear_max_vals) + 1e-5)
     data["temp_stress"] = data["process_temperature_k"] / (np.array(temp_max_vals) + 1e-5)
     
-    # One-hot encode machine quality 'type' (L, M, H)
+    # Safe One-hot encoding for machine quality 'type' (L, M, H)
+    for t_col in ["type_H", "type_L", "type_M"]:
+        if t_col not in data.columns:
+            data[t_col] = 0
+
     if "type" in data.columns:
         type_dummies = pd.get_dummies(data["type"].astype(str), prefix="type", dtype=int)
         for t_col in ["type_H", "type_L", "type_M"]:
-            if t_col not in type_dummies.columns:
-                type_dummies[t_col] = 0
-        data = pd.concat([data, type_dummies[["type_H", "type_L", "type_M"]]], axis=1)
+            if t_col in type_dummies.columns:
+                data[t_col] = type_dummies[t_col]
         data = data.drop(columns=["type"])
+
+    # Final deduplication check to prevent any downstream pandas reindexing errors
+    data = data.loc[:, ~data.columns.duplicated()].copy()
     
     return data
 

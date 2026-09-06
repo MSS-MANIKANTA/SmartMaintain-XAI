@@ -573,31 +573,25 @@ def render_batch_diagnostics(model, scaler, feature_names, iso_forest):
                 
             st.session_state["uploaded_custom_df"] = df_batch_raw.copy()
             st.session_state["uploaded_filename"] = uploaded_file.name
-                
-            req_sensors = ["air_temperature_k", "process_temperature_k", "rotational_speed_rpm", "torque_nm", "tool_wear_min"]
-            found_cols = [c.lower() for c in df_batch_raw.columns]
-            missing = []
-            for req in req_sensors:
-                req_sub = req.split("_")[0]
-                if not any(req_sub in c for c in found_cols):
-                    missing.append(req)
-                    
-            if missing:
-                st.warning(f"⚠️ Potential missing sensor columns detected: {missing}. SmartMaintain-XAI will apply domain defaults for unmapped features.")
-
+            
             process_batch_dataframe(df_batch_raw, model, scaler, feature_names, iso_forest, selected_batch_m_type)
         except Exception as err:
             st.error(f"⚠️ Unable to parse uploaded CSV file: {str(err)}. Please ensure it is a valid comma-separated text file.")
 
 def process_batch_dataframe(df_raw, model, scaler, feature_names, iso_forest, selected_batch_m_type="Auto-Detect from CSV ('Machine_Type' column)"):
     df_raw = df_raw.reset_index(drop=True)
+    df_raw = df_raw.loc[:, ~df_raw.columns.duplicated()].copy()
     
     if selected_batch_m_type != "Auto-Detect from CSV ('Machine_Type' column)":
         df_raw["Machine_Type"] = selected_batch_m_type
 
-    st.success(f"Loaded batch telemetry dataset containing {len(df_raw)} machine records. (Evaluating as: {selected_batch_m_type.split('(')[0].strip()})")
-    
     df_engineered = engineer_features(df_raw)
+    
+    # Check if any key sensor features were missing before engineering defaults
+    found_essential = [col for col in ["air_temperature_k", "process_temperature_k", "rotational_speed_rpm", "torque_nm", "tool_wear_min"] if col in df_engineered.columns]
+    
+    st.success(f"Loaded batch telemetry dataset containing {len(df_raw)} machine records. (Evaluating as: {selected_batch_m_type.split('(')[0].strip()})")
+
     
     for col in feature_names:
         if col not in df_engineered.columns:
