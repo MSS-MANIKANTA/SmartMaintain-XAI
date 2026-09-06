@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 from pathlib import Path
 import sys
-import base64
 from datetime import datetime
 
 # Add project root to path
@@ -43,329 +42,261 @@ for m_name, specs in config.MACHINE_25_SPECS.items():
 
 # Page Configuration
 st.set_page_config(
-    page_title="Sentinex | Predictive Health & Maintenance AI",
+    page_title="SmartMaintain-XAI | Enterprise Predictive Maintenance",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Helper function to get base64 encoded image string
-def get_base64_image(image_path):
-    p = Path(image_path)
-    if p.exists():
-        with open(p, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    return ""
-
-spindle_b64 = get_base64_image(BASE_DIR / "app" / "assets" / "spindle.png")
-plant_b64 = get_base64_image(BASE_DIR / "app" / "assets" / "plant.png")
-
-# Custom Dark Industrial "Sentinex" Theme CSS
-st.markdown(f"""
+# Custom Dark Industrial CSS Styling with Google Fonts & Glassmorphism Aesthetics
+st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
     
-    html, body, [class*="css"] {{
+    html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }}
+    }
     
-    /* Main Background */
-    .stApp {{
-        background-color: #0B0E14;
-        color: #F1F5F9;
-    }}
-    
-    /* Top Alert Banner */
-    .critical-alert-banner {{
-        background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.25) 50%, rgba(239, 68, 68, 0.15) 100%);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        border-radius: 10px;
-        padding: 0.75rem 1.4rem;
-        margin-bottom: 1.4rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
-    }}
-    .alert-left {{
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        font-size: 0.95rem;
-    }}
-    .alert-badge {{
-        background: #EF4444;
-        color: #FFFFFF;
-        font-weight: 800;
-        font-size: 0.78rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }}
-    .alert-text {{
+    /* Main Background Mesh */
+    .stApp {
+        background: radial-gradient(circle at 50% -20%, #1E293B 0%, #0F172A 55%, #090D16 100%);
         color: #F8FAFC;
-        font-weight: 600;
-    }}
-    .alert-text span {{
-        color: #FCA5A5;
-        font-weight: 700;
-    }}
-    .alert-link {{
-        color: #EF4444;
-        font-weight: 700;
-        font-size: 0.9rem;
-        text-decoration: none;
-        cursor: pointer;
-    }}
-
-    /* Card Containers */
-    .sentinex-card {{
-        background: #121722;
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 14px;
-        padding: 1.4rem;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }}
+    }
     
-    .card-title {{
-        font-size: 1.1rem;
+    /* Main Hero Header */
+    .main-header {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 50%, rgba(14, 116, 144, 0.25) 100%);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 2.2rem 2.5rem;
+        border-radius: 20px;
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #38BDF8 0%, #818CF8 50%, #10B981 100%);
+    }
+    
+    .header-title {
+        background: linear-gradient(90deg, #FFFFFF 0%, #38BDF8 40%, #818CF8 80%, #C084FC 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.5rem;
         font-weight: 800;
-        color: #F8FAFC;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }}
-
-    /* Hero Asset Card */
-    .asset-header {{
+        letter-spacing: -0.025em;
+        margin: 0;
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        margin-bottom: 1rem;
-    }}
-    .asset-name {{
-        font-size: 1.35rem;
-        font-weight: 800;
-        color: #FFFFFF;
-    }}
-    .badge-critical {{
-        background: rgba(239, 68, 68, 0.2);
-        color: #EF4444;
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        padding: 0.2rem 0.65rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 800;
-        letter-spacing: 0.05em;
-    }}
-    .badge-warning {{
-        background: rgba(245, 158, 11, 0.2);
-        color: #F59E0B;
-        border: 1px solid rgba(245, 158, 11, 0.4);
-        padding: 0.2rem 0.65rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 800;
-    }}
-    .badge-normal {{
-        background: rgba(16, 185, 129, 0.2);
-        color: #10B981;
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        padding: 0.2rem 0.65rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 800;
-    }}
-
-    /* Failure prediction display */
-    .prediction-val {{
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #EF4444;
-        line-height: 1.1;
-    }}
-    .prediction-sub {{
+    }
+    
+    .header-subtitle {
         color: #94A3B8;
-        font-size: 0.82rem;
+        font-size: 1.1rem;
         font-weight: 500;
-        margin-bottom: 1rem;
-    }}
-
-    /* Risk level bar meter */
-    .risk-meter {{
-        display: flex;
-        gap: 4px;
         margin-top: 0.4rem;
-    }}
-    .meter-segment {{
-        height: 6px;
-        flex: 1;
-        border-radius: 3px;
-        background: #1E293B;
-    }}
-    .meter-segment.active-red {{ background: #EF4444; box-shadow: 0 0 8px rgba(239,68,68,0.6); }}
-    .meter-segment.active-orange {{ background: #F97316; }}
-    .meter-segment.active-yellow {{ background: #F59E0B; }}
-    .meter-segment.active-green {{ background: #10B981; }}
-
-    /* Sensor Metric Sparkline Tiles */
-    .sensor-tile {{
-        background: #0E121B;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 10px;
-        padding: 0.9rem;
-        text-align: left;
-    }}
-    .sensor-tile-label {{
-        color: #94A3B8;
-        font-size: 0.76rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }}
-    .sensor-tile-val {{
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: #F8FAFC;
-    }}
-    .sensor-tile-change {{
-        font-size: 0.72rem;
-        font-weight: 700;
-        margin-top: 0.2rem;
-    }}
-    .change-up-red {{ color: #EF4444; }}
-    .change-up-blue {{ color: #38BDF8; }}
-
-    /* Action Box */
-    .sentinex-action-box {{
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        border-radius: 12px;
-        padding: 1.1rem 1.3rem;
-        margin-top: 1rem;
-    }}
-    .action-header {{
-        color: #818CF8;
-        font-weight: 700;
-        font-size: 0.92rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.4rem;
-    }}
-    .action-body {{
-        color: #E2E8F0;
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-bottom: 0.8rem;
-    }}
-    .action-metrics {{
-        display: flex;
-        gap: 2rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        padding-top: 0.6rem;
-    }}
-    .action-metric-lbl {{
-        color: #94A3B8;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }}
-    .action-metric-val {{
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: #F8FAFC;
-    }}
-    .val-emerald {{ color: #34D399; }}
-
-    /* Bottom Feature Matrix Cards */
-    .feature-card {{
-        background: #121722;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 12px;
-        padding: 1.1rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }}
-    .feature-icon-box {{
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        background: rgba(99, 102, 241, 0.15);
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.3rem;
-    }}
-    .feature-title {{
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #F8FAFC;
-    }}
-    .feature-desc {{
-        font-size: 0.8rem;
-        color: #94A3B8;
-    }}
-
-    /* Sidebar Styling */
-    section[data-testid="stSidebar"] {{
-        background-color: #0B0E14;
-        border-right: 1px solid rgba(255, 255, 255, 0.07);
-    }}
-    .sidebar-brand {{
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        padding: 0.5rem 0 1.2rem 0;
-    }}
-    .sidebar-brand-icon {{
-        width: 32px;
-        height: 32px;
-        background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #FFFFFF;
-        font-weight: 800;
-        font-size: 1rem;
-    }}
+        margin-bottom: 1.1rem;
+        line-height: 1.5;
+    }
     
-    .sidebar-plant-card {{
-        background: #121722;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 0.9rem;
-        margin-top: 1.5rem;
-    }}
+    /* Live Pulsing Dot */
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: #34D399;
+        text-transform: uppercase;
+        background: rgba(16, 185, 129, 0.12);
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        margin-bottom: 0.8rem;
+    }
+    
+    .pulsing-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #10B981;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse-green 1.8s infinite;
+    }
+    
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
 
-    /* Buttons & Form Inputs */
-    .stButton>button {{
-        background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+    /* Badges */
+    .badge-pill {
+        background: rgba(56, 189, 248, 0.12);
+        color: #38BDF8;
+        padding: 0.4rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.84rem;
+        font-weight: 600;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-right: 0.5rem;
+        margin-top: 0.4rem;
+        transition: all 0.2s ease;
+    }
+    .badge-pill:hover {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: rgba(56, 189, 248, 0.5);
+    }
+    .badge-pill-success {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34D399;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+    .badge-pill-purple {
+        background: rgba(168, 85, 247, 0.12);
+        color: #C084FC;
+        border-color: rgba(168, 85, 247, 0.3);
+    }
+
+    /* Modern Glass Cards */
+    .glass-card {
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        padding: 1.6rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.45);
+        margin-bottom: 1.4rem;
+    }
+    .machine-spec-card {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
+        padding: 1.4rem 1.8rem;
+        border-radius: 16px;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        margin-bottom: 1.6rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .recommendation-box {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+        padding: 1.8rem 2rem;
+        border-radius: 16px;
+        border-left: 6px solid #38BDF8;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 1.4rem;
+        box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.65);
+    }
+
+    /* Metric Tiles */
+    .metric-tile {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 14px;
+        padding: 1.25rem 1.1rem;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        text-align: center;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .metric-tile:hover {
+        transform: translateY(-3px);
+        border-color: rgba(56, 189, 248, 0.45);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.15);
+    }
+    .metric-label {
+        color: #94A3B8;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.4rem;
+    }
+    .metric-val {
+        color: #F8FAFC;
+        font-size: 1.55rem;
+        font-weight: 800;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    /* Custom Streamlit Buttons */
+    .stButton>button {
+        background: linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%);
         color: #FFFFFF !important;
         font-weight: 700;
-        font-size: 0.9rem;
-        border-radius: 8px;
-        border: none;
-        padding: 0.55rem 1.4rem;
-        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-    }}
+        font-size: 0.95rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 0.65rem 1.8rem;
+        box-shadow: 0 4px 18px rgba(14, 165, 233, 0.35);
+        transition: all 0.25s ease;
+        letter-spacing: 0.01em;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #0369A1 0%, #0284C7 100%);
+        box-shadow: 0 8px 25px rgba(14, 165, 233, 0.55);
+        transform: translateY(-2px);
+    }
+    .stButton>button:active {
+        transform: translateY(0px);
+    }
+
+    /* Sidebar Refinements */
+    section[data-testid="stSidebar"] {
+        background: #090D16;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    section[data-testid="stSidebar"] .stRadio label {
+        font-weight: 600;
+        color: #E2E8F0;
+        font-size: 0.95rem;
+    }
+
+    /* Table & Dataframe Styling */
+    .dataframe {
+        border-radius: 12px !important;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    /* Code / Monospace Tags */
+    code {
+        font-family: 'JetBrains Mono', monospace !important;
+        background: rgba(30, 41, 59, 0.7) !important;
+        color: #38BDF8 !important;
+        padding: 0.15rem 0.45rem !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state for prediction history log
+# Initialize session state for prediction history log with pre-seeded time-series data
 if "prediction_history" not in st.session_state:
     st.session_state["prediction_history"] = [
-        {"Timestamp": "09:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "CNC-208", "Failure Prob %": 72.0, "Anomaly Score %": 78.5, "Risk Level": "HIGH RISK", "Status": "Critical", "Recommended Action": "Replace spindle bearing during next planned downtime."},
-        {"Timestamp": "10:00", "Machine Model": "Welder Motor Drive", "Machine ID": "WLD-302", "Failure Prob %": 54.0, "Anomaly Score %": 58.2, "Risk Level": "MEDIUM RISK", "Status": "Medium", "Recommended Action": "Inspect motor winding & lubrication."},
-        {"Timestamp": "11:00", "Machine Model": "Main Shaft Drive", "Machine ID": "PRS-104", "Failure Prob %": 48.0, "Anomaly Score %": 51.0, "Risk Level": "MEDIUM RISK", "Status": "Medium", "Recommended Action": "Check shaft alignment."},
-        {"Timestamp": "12:00", "Machine Model": "Conveyor Gearbox", "Machine ID": "PCK-501", "Failure Prob %": 12.0, "Anomaly Score %": 15.1, "Risk Level": "LOW RISK", "Status": "Normal", "Recommended Action": "Routine maintenance."}
+        {"Timestamp": "09:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 8.0, "Anomaly Score %": 10.2, "Risk Level": "LOW RISK", "Status": "Normal", "Recommended Action": "Continue Normal Operation"},
+        {"Timestamp": "10:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 15.0, "Anomaly Score %": 18.5, "Risk Level": "LOW RISK", "Status": "Normal", "Recommended Action": "Monitor Machine Closely"},
+        {"Timestamp": "11:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 38.0, "Anomaly Score %": 42.1, "Risk Level": "MEDIUM RISK", "Status": "Medium", "Recommended Action": "Schedule Inspection Promptly"},
+        {"Timestamp": "12:00", "Machine Model": "CNC Milling Spindle", "Machine ID": "M-CNC-101", "Failure Prob %": 71.0, "Anomaly Score %": 76.8, "Risk Level": "HIGH RISK", "Status": "High", "Recommended Action": "Schedule Immediate Mechanical Maintenance"}
     ]
 
 @st.cache_resource
@@ -397,411 +328,930 @@ def compute_anomaly_score(iso_forest, X_scaled):
     if iso_forest is None:
         return 10.0
     raw_score = iso_forest.score_samples(X_scaled)[0]
+    # score_samples ranges ~ -0.8 (highly anomalous) to 0.0 (normal)
+    # Convert to 0% - 100% anomaly index
     anomaly_pct = float(np.clip((0.2 - raw_score) * 100.0, 0.0, 100.0))
     return round(anomaly_pct, 1)
 
+def get_machine_trend(machine_id):
+    """Calculates condition risk trend based on historical predictions for this Machine ID."""
+    history = [log for log in st.session_state["prediction_history"] if log["Machine ID"] == machine_id]
+    if not history:
+        return "Stable ➡️", "#38BDF8", [8.0], "8% (Stable)"
+    
+    probs = [log["Failure Prob %"] for log in history]
+    trend_seq = " → ".join([f"{p:.0f}%" for p in probs[-4:]])
+    
+    if len(probs) < 2:
+        return "Stable ➡️", "#38BDF8", probs, f"Risk Trend: {trend_seq}"
+    
+    diff = probs[-1] - probs[-2]
+    if diff > 3.0:
+        return "Risk Increasing ↗", "#EF4444", probs, f"Risk Trend: {trend_seq} (↗ Risk Increasing)"
+    elif diff < -3.0:
+        return "Improving Health 📉", "#10B981", probs, f"Risk Trend: {trend_seq} (📉 Improving)"
+    else:
+        return "Stable ➡️", "#38BDF8", probs, f"Risk Trend: {trend_seq} (➡️ Stable)"
+
+def format_benchmark_table(df: pd.DataFrame):
+    """
+    Highlights maximum values ONLY in numeric columns to prevent string column 'Model'
+    from highlighting 'XGBoost' alphabetically over 'Random Forest'.
+    """
+    if df is None or df.empty:
+        return df
+    numeric_cols = [c for c in df.columns if c != "Model"]
+    return df.style.highlight_max(subset=numeric_cols, axis=0, color='#1E3A8A')
+
 def main():
+    # Hero Header Banner
+    st.markdown("""
+    <div class="main-header">
+        <div class="live-indicator">
+            <span class="pulsing-dot"></span> System Live & Operational • Dual ML Engine Active
+        </div>
+        <h1 class="header-title">⚙️ SmartMaintain-XAI</h1>
+        <p class="header-subtitle">
+            Enterprise Industrial Intelligence • Dual-Engine Failure & Anomaly Analytics • SHAP Root Cause Attribution
+        </p>
+        <div>
+            <span class="badge-pill">⚡ Level 1: Random Forest Classifier</span>
+            <span class="badge-pill">🔍 Level 2: Isolation Forest Anomaly Index</span>
+            <span class="badge-pill badge-pill-success">🏭 25 Equipment Machine Catalog</span>
+            <span class="badge-pill badge-pill-purple">🧠 SHAP Marginal Attribution</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # Load artifacts
     model, scaler, feature_names, iso_forest, df_bench, df_cv, load_error = load_pipeline_artifacts()
 
     if load_error:
         st.error(f"⚠️ Model artifacts not loaded yet. Please run training pipeline first.")
-        st.info("Run `python -m src.train` in terminal to train models.")
+        st.info("Run `python -m src.train` in terminal to train models and generate report metrics.")
         if st.button("🚀 Trigger Model Training Pipeline Now"):
-            from src.train import train_and_evaluate_all
-            train_and_evaluate_all()
-            st.rerun()
+            with st.spinner("Training Random Forest, Isolation Forest, XGBoost & 5-Fold Cross-Validation..."):
+                from src.train import train_and_evaluate_all
+                train_and_evaluate_all()
+                st.success("Training complete! Refreshing page...")
+                st.rerun()
         return
 
-    # Sidebar Navigation & Branding
-    with st.sidebar:
-        st.markdown("""
-        <div class="sidebar-brand">
-            <div class="sidebar-brand-icon">S</div> Sentinex
-        </div>
-        """, unsafe_allow_html=True)
-        
-        app_mode = st.radio(
-            "Navigation",
-            [
-                "📈 Predictive Health Overview",
-                "🕹️ Interactive Machine Diagnostics",
-                "📁 Batch CSV Diagnostics",
-                "📊 Model Benchmarks & Validation",
-                "🏗️ System Architecture"
-            ],
-            index=0
-        )
-        
-        st.markdown("---")
-        
-        # Plant Status Card
-        if plant_b64:
-            st.markdown(f"""
-            <div class="sidebar-plant-card">
-                <div style="display: flex; align-items: center; gap: 0.5rem; color: #10B981; font-weight: 700; font-size: 0.8rem; margin-bottom: 0.4rem;">
-                    <span style="width: 7px; height: 7px; background: #10B981; border-radius: 50%;"></span> Connected
-                </div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: #F8FAFC; margin-bottom: 0.4rem;">Plant Munich</div>
-                <img src="data:image/png;base64,{plant_b64}" style="width: 100%; border-radius: 8px; margin-bottom: 0.5rem; opacity: 0.9;" />
-                <div style="font-size: 0.78rem; color: #94A3B8; font-weight: 600;">Shift B &nbsp;•&nbsp; 06:00 – 14:00</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="sidebar-plant-card">
-                <div style="color: #10B981; font-weight: 700; font-size: 0.8rem;">● Connected</div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: #F8FAFC;">Plant Munich</div>
-                <div style="font-size: 0.78rem; color: #94A3B8;">Shift B • 06:00 – 14:00</div>
-            </div>
-            """, unsafe_allow_html=True)
+    # Sidebar Controls & Navigation
+    st.sidebar.image("https://img.icons8.com/color/96/000000/maintenance.png", width=70)
+    st.sidebar.title("Navigation & Controls")
+    
+    app_mode = st.sidebar.radio(
+        "Select Operation Mode",
+        [
+            "🕹️ Interactive Machine Diagnostics",
+            "📁 Batch CSV Diagnostics",
+            "📈 Model Performance & Benchmarks",
+            "🏗️ System Architecture & Specifications"
+        ]
+    )
+    
+    # Read verified metrics dynamically from df_bench
+    rf_acc, rf_f1 = "99.2%", "0.97"
+    if df_bench is not None and not df_bench.empty:
+        rf_row = df_bench[df_bench["Model"].str.contains("Random Forest", case=False, na=False)]
+        if not rf_row.empty:
+            rf_acc = f"{float(rf_row.iloc[0]['Accuracy']) * 100:.1f}%" if float(rf_row.iloc[0]['Accuracy']) <= 1.0 else f"{rf_row.iloc[0]['Accuracy']}%"
+            rf_f1 = f"{float(rf_row.iloc[0]['F1-Score']):.4f}"
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### ⚙️ System Specifications")
+    st.sidebar.markdown(f"""
+    - **Classifier Engine**: Random Forest (Accuracy: {rf_acc}, F1: {rf_f1})
+    - **Anomaly Engine**: Isolation Forest Unsupervised Detector
+    - **Equipment Catalog**: 25 Machine Models Baseline
+    - **Validation**: 5-Fold Stratified Cross-Validation
+    - **Deployment State**: Production Ready
+    """)
 
     # Render Selected Mode
-    if app_mode == "📈 Predictive Health Overview":
-        render_sentinex_overview(model, scaler, feature_names, iso_forest)
-    elif app_mode == "🕹️ Interactive Machine Diagnostics":
-        render_interactive_diagnostics(model, scaler, feature_names, iso_forest)
+    if app_mode == "🕹️ Interactive Machine Diagnostics":
+        render_live_diagnostics(model, scaler, feature_names, iso_forest)
     elif app_mode == "📁 Batch CSV Diagnostics":
         render_batch_diagnostics(model, scaler, feature_names, iso_forest)
-    elif app_mode == "📊 Model Benchmarks & Validation":
-        render_benchmarks(df_bench, df_cv, feature_names)
+    elif app_mode == "📈 Model Performance & Benchmarks":
+        render_benchmarks_and_theory(df_bench, df_cv, feature_names)
     else:
-        render_architecture()
+        render_methodology_and_flow()
 
-def render_sentinex_overview(model, scaler, feature_names, iso_forest):
-    # Top Header
-    col_h1, col_h2 = st.columns([2.5, 1])
-    with col_h1:
-        st.markdown("""
-        <h1 style="font-size: 1.8rem; font-weight: 800; color: #F8FAFC; margin: 0;">Predictive Maintenance</h1>
-        <p style="color: #94A3B8; font-size: 0.92rem; margin-top: 0.2rem; margin-bottom: 1rem;">
-            AI models analyze sensor data to predict failures 48–72 hours in advance.
-        </p>
-        """, unsafe_allow_html=True)
-    with col_h2:
-        col_f1, col_f2 = st.columns([1, 1])
-        with col_f1:
-            st.selectbox("Asset Scope", ["All Assets", "CNC Fleet", "Hydraulics"], label_visibility="collapsed")
-        with col_f2:
-            st.button("📅 Schedule Work Order", use_container_width=True)
+    # Footer: 6-Step Methodology Summary
+    st.markdown("---")
+    render_how_it_works_footer()
 
-    # Critical Alert Banner
-    st.markdown("""
-    <div class="critical-alert-banner">
-        <div class="alert-left">
-            <span class="alert-badge">⚠️ 1 Critical Alert</span>
-            <span class="alert-text"><span>CNC-208</span> &nbsp;→&nbsp; Bearing failure predicted in <b>~58 hours</b></span>
-        </div>
-        <div class="alert-link">View Details →</div>
+def render_live_diagnostics(model, scaler, feature_names, iso_forest):
+    st.subheader("🕹️ Interactive Machine Telemetry Simulation")
+    st.caption("Select an Equipment Machine Type to automatically load machine-specific baseline sensor defaults and dynamic ranges.")
+
+    # 1. Machine Selection
+    selected_m_type = st.selectbox(
+        "🏭 Select Equipment Machine Model (25 Catalog Models)",
+        list(MACHINE_TYPES.keys()),
+        index=0
+    )
+    
+    m_info = MACHINE_TYPES[selected_m_type]
+    spec_tuple = config.MACHINE_25_SPECS[selected_m_type]
+    
+    # Display Machine Spec Banner
+    st.markdown(f"""
+    <div class="machine-spec-card">
+        <h4 style="color: #38BDF8; margin: 0 0 0.3rem 0;">ℹ️ {selected_m_type}</h4>
+        <p style="color: #E2E8F0; margin: 0 0 0.4rem 0; font-size: 0.95rem;">{m_info['description']}</p>
+        <span style="color: #94A3B8; font-size: 0.85rem; font-weight: 600;">⚡ Machine-Specific Baseline Ranges — Air Temp: {spec_tuple['air_temp'][0]}–{spec_tuple['air_temp'][1]} K | Proc Temp: {spec_tuple['proc_temp'][0]}–{spec_tuple['proc_temp'][1]} K | Speed: {spec_tuple['rpm'][0]}–{spec_tuple['rpm'][1]} RPM | Torque: {spec_tuple['torque'][0]}–{spec_tuple['torque'][1]} Nm | Tool Wear: {spec_tuple['wear'][0]}–{spec_tuple['wear'][1]} min</span>
     </div>
     """, unsafe_allow_html=True)
 
-    # Row 1: Hero Asset Card (Left) & Vibration Trend Chart (Right)
-    col_hero, col_chart = st.columns([1.1, 1.2])
-
-    with col_hero:
-        st.markdown('<div class="sentinex-card">', unsafe_allow_html=True)
-        st.markdown("""
-        <div class="asset-header">
-            <span class="asset-name">CNC-208 · Spindle Assembly</span>
-            <span class="badge-critical">CRITICAL</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        col_img, col_pred = st.columns([1.1, 1])
-        with col_img:
-            if spindle_b64:
-                st.markdown(f'<img src="data:image/png;base64,{spindle_b64}" style="width: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);" />', unsafe_allow_html=True)
-            else:
-                st.info("⚙️ 3D Assembly View")
-        with col_pred:
-            st.markdown("""
-            <div style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">Failure Prediction</div>
-            <div class="prediction-val">~58 hrs</div>
-            <div class="prediction-sub">Remaining Until Failure</div>
-            <div style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">Risk Level</div>
-            <div style="font-size: 1.1rem; font-weight: 800; color: #EF4444;">High</div>
-            <div class="risk-meter">
-                <div class="meter-segment active-green"></div>
-                <div class="meter-segment active-yellow"></div>
-                <div class="meter-segment active-orange"></div>
-                <div class="meter-segment active-red"></div>
-                <div class="meter-segment active-red"></div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("<div style='height: 1.2rem;'></div>", unsafe_allow_html=True)
-
-        # 4 Sensor Sparkline Tiles
-        s1, s2, s3, s4 = st.columns(4)
-        with s1:
-            st.markdown("""
-            <div class="sensor-tile">
-                <div class="sensor-tile-label">Vibration RMS</div>
-                <div class="sensor-tile-val">3.8 <span style="font-size:0.75rem; font-weight:500; color:#94A3B8;">mm/s</span></div>
-                <div class="sensor-tile-change change-up-red">↑ 18% vs baseline</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with s2:
-            st.markdown("""
-            <div class="sensor-tile">
-                <div class="sensor-tile-label">Bearing Temp</div>
-                <div class="sensor-tile-val">82 <span style="font-size:0.75rem; font-weight:500; color:#94A3B8;">°C</span></div>
-                <div class="sensor-tile-change change-up-red">↑ 14% vs baseline</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with s3:
-            st.markdown("""
-            <div class="sensor-tile">
-                <div class="sensor-tile-label">Spindle Current</div>
-                <div class="sensor-tile-val">14.2 <span style="font-size:0.75rem; font-weight:500; color:#94A3B8;">A</span></div>
-                <div class="sensor-tile-change change-up-blue">↑ 9% vs baseline</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with s4:
-            st.markdown("""
-            <div class="sensor-tile">
-                <div class="sensor-tile-label">Health Score</div>
-                <div class="sensor-tile-val" style="color:#EF4444;">28 <span style="font-size:0.75rem; font-weight:500; color:#94A3B8;">/100</span></div>
-                <div class="sensor-tile-change change-up-red">Degrading</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_chart:
-        st.markdown('<div class="sentinex-card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">Vibration Trend (RMS)</div>', unsafe_allow_html=True)
-
-        # Plotly Time Series Trend Chart with Prediction Window
-        hours_past = np.array([-18, -15, -12, -9, -6, -3, 0])
-        rms_past = np.array([1.8, 1.9, 2.2, 2.8, 3.1, 3.6, 3.8])
-
-        hours_future = np.array([0, 24, 48, 72])
-        rms_future = np.array([3.8, 4.1, 4.6, 5.4])
-
-        fig = go.Figure()
-
-        # Shaded Red Prediction Window Area
-        fig.add_vrect(x0=0, x1=72, fillcolor="rgba(239, 68, 68, 0.12)", layer="below", line_width=0)
-        fig.add_annotation(x=48, y=4.8, text="Prediction Window", showarrow=False, font=dict(color="#EF4444", size=11, family="Plus Jakarta Sans"))
-
-        # Past RMS Line
-        fig.add_trace(go.Scatter(x=hours_past, y=rms_past, mode='lines+markers', name='RMS (mm/s)', line=dict(color='#8B5CF6', width=2.5)))
-
-        # Forecast Line
-        fig.add_trace(go.Scatter(x=hours_future, y=rms_future, mode='lines+markers', name='Forecast', line=dict(color='#EF4444', width=2.5, dash='dash')))
-
-        # Threshold Line
-        fig.add_trace(go.Scatter(x=[-18, 72], y=[4.5, 4.5], mode='lines', name='Threshold', line=dict(color='#EF4444', width=1.5, dash='dot')))
-
-        fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=210,
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis=dict(gridcolor='rgba(255,255,255,0.05)', tickmode='array', tickvals=[-18, -12, -6, 0, 24, 48, 72], ticktext=['-18h', '-12h', '-6h', 'Now', '+24h', '+48h', '+72h']),
-            yaxis=dict(gridcolor='rgba(255,255,255,0.05)', title='RMS (mm/s)'),
-            font=dict(color='#94A3B8', family="Plus Jakarta Sans"),
-            showlegend=False
+    # 2. Machine ID & Presets
+    col_hdr1, col_hdr2 = st.columns([1, 2])
+    with col_hdr1:
+        default_id = f"{m_info['prefix']}-101"
+        machine_id = st.text_input("Asset Machine ID", value=default_id, help="Unique identifier for the selected equipment unit.")
+    with col_hdr2:
+        preset = st.selectbox(
+            "⚡ Operational Sensor Presets (Health Scenarios)",
+            [
+                "Auto-Calibrated Normal Baseline",
+                "🟢 Healthy Normal Operation",
+                "🟡 Thermal Overheating Scenario",
+                "🟠 Mechanical Overload Scenario",
+                "🔴 Excessive Tool Wear Scenario",
+                "⚡ High-Speed Over-RPM Scenario",
+                "🚨 Combined Multi-Factor Failure Scenario"
+            ]
         )
-        st.plotly_chart(fig, use_container_width=True)
 
-        # Model Info Footer
-        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-        with col_m1:
-            st.markdown("<div style='font-size:0.75rem; color:#94A3B8;'>Model</div><div style='font-size:0.85rem; font-weight:700; color:#F8FAFC;'>Bearing Failure v2.3</div>", unsafe_allow_html=True)
-        with col_m2:
-            st.markdown("<div style='font-size:0.75rem; color:#94A3B8;'>Confidence</div><div style='font-size:0.85rem; font-weight:800; color:#10B981;'>92%</div>", unsafe_allow_html=True)
-        with col_m3:
-            st.markdown("<div style='font-size:0.75rem; color:#94A3B8;'>Data Quality</div><div style='font-size:0.85rem; font-weight:800; color:#10B981;'>98%</div>", unsafe_allow_html=True)
-        with col_m4:
-            st.markdown("<div style='font-size:0.75rem; color:#94A3B8;'>Last Update</div><div style='font-size:0.85rem; font-weight:700; color:#F8FAFC;'>Apr 24, 02:15</div>", unsafe_allow_html=True)
+    # Base ranges for selected machine type
+    a_min, a_max, a_def = m_info["air_temp_range"]
+    p_min, p_max, p_def = m_info["proc_temp_range"]
+    s_min, s_max, s_def = m_info["speed_range"]
+    t_min, t_max, t_def = m_info["torque_range"]
+    w_min, w_max, w_def = m_info["wear_range"]
+    
+    spec_a_max = spec_tuple["air_temp"][1]
+    spec_p_max = spec_tuple["proc_temp"][1]
+    spec_r_max = spec_tuple["rpm"][1]
+    spec_t_max = spec_tuple["torque"][1]
+    spec_w_max = spec_tuple["wear"][1]
 
-        st.markdown('</div>', unsafe_allow_html=True)
+    air_temp, proc_temp, speed, torque, wear = a_def, p_def, s_def, t_def, w_def
+    quality_type = "M (Medium - 30%)"
 
-    # Row 2: Top Risk Assets Table (Left) & Risk Drivers / Action (Right)
-    col_table, col_driver = st.columns([1.1, 1.2])
+    if "Healthy" in preset or "Baseline" in preset:
+        air_temp, proc_temp, speed, torque, wear = a_def, p_def, s_def, t_def, w_def
+    elif "Thermal Overheating" in preset:
+        air_temp = spec_a_max + 4.0
+        proc_temp = spec_p_max + 12.0
+        speed = s_def
+        torque = t_def
+        wear = int(w_def * 0.8)
+    elif "Mechanical Overload" in preset:
+        air_temp = a_def + 2.0
+        proc_temp = p_def + 4.0
+        speed = int(s_def * 0.9)
+        torque = spec_t_max * 1.45
+        wear = int(w_def * 0.8)
+    elif "Excessive Tool Wear" in preset:
+        air_temp = a_def
+        proc_temp = p_def
+        speed = s_def
+        torque = t_def * 1.15
+        wear = spec_w_max + 35
+    elif "High-Speed Over-RPM" in preset:
+        air_temp = a_def
+        proc_temp = p_def
+        speed = int(spec_r_max * 1.35)
+        torque = float(spec_t_max * 1.2)
+        wear = int(w_def * 0.8)
+    elif "Combined Multi-Factor" in preset:
+        air_temp = spec_a_max + 3.0
+        proc_temp = spec_p_max + 8.0
+        speed = int(spec_r_max * 1.25)
+        torque = float(spec_t_max * 1.35)
+        wear = spec_w_max + 30
 
-    with col_table:
-        st.markdown('<div class="sentinex-card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">Top Risk Assets</div>', unsafe_allow_html=True)
+    # 3. Interactive Sensor Inputs
+    st.markdown("#### 📡 Simulated Sensor Inputs")
+    col_input1, col_input2, col_input3 = st.columns(3)
 
-        df_fleet = pd.DataFrame([
-            {"Asset": "CNC-208", "Component": "Spindle Bearing", "Risk": "High", "Failure In": "~58 hrs", "Trend": "📈 Rising Risk"},
-            {"Asset": "WLD-302", "Component": "Welder Motor", "Risk": "Medium", "Failure In": "~65 hrs", "Trend": "📈 Elevated"},
-            {"Asset": "PRS-104", "Component": "Main Drive", "Risk": "Medium", "Failure In": "~72 hrs", "Trend": "➡️ Stable"},
-            {"Asset": "PCK-501", "Component": "Conveyor Gearbox", "Risk": "Low", "Failure In": "~120 hrs", "Trend": "📉 Low Risk"},
-            {"Asset": "CNC-101", "Component": "Coolant Pump", "Risk": "Low", "Failure In": "~168 hrs", "Trend": "📉 Low Risk"}
-        ])
+    with col_input1:
+        air_temp = st.slider("Air Temperature (°K)", float(a_min), float(a_max), float(air_temp), 0.1, help="Ambient temperature around equipment.")
+        proc_temp = st.slider("Process Temperature (°K)", float(p_min), float(p_max), float(proc_temp), 0.1, help="Internal process operating temperature.")
 
-        st.dataframe(df_fleet, use_container_width=True)
-        st.markdown('<div style="text-align:center; margin-top:0.5rem;"><a style="color:#818CF8; font-weight:700; font-size:0.85rem;">View all assets →</a></div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    with col_input2:
+        speed = st.slider("Rotational Speed (RPM)", int(s_min), int(s_max), int(speed), 10, help="Equipment rotational shaft speed.")
+        torque = st.slider("Torque (Nm)", float(t_min), float(t_max), float(torque), 0.5, help="Mechanical torque exerted on drive shaft.")
 
-    with col_driver:
-        st.markdown('<div class="sentinex-card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">What\'s Driving the Risk?</div>', unsafe_allow_html=True)
+    with col_input3:
+        wear = st.slider("Tool Wear (minutes)", int(w_min), int(w_max), int(wear), 5, help="Cumulative tool/component usage operating time.")
+        quality_type = st.selectbox("Equipment Quality Grade", ["L (Low Grade)", "M (Standard Grade)", "H (High Precision)"], index=1)
+        q_code = quality_type[0]
 
-        col_d1, col_d2 = st.columns([1, 1.4])
-        with col_d1:
-            # Donut chart for 68% Bearing Wear
-            fig_donut = go.Figure(go.Pie(
-                values=[68, 18, 8, 6],
-                labels=['Bearing Wear', 'Lubrication Degradation', 'Misalignment', 'Overload'],
-                hole=0.7,
-                marker=dict(colors=['#8B5CF6', '#38BDF8', '#818CF8', '#475569']),
-                textinfo='none'
-            ))
-            fig_donut.add_annotation(text="<b>68%</b><br><span style='font-size:10px; color:#94A3B8;'>Bearing Wear</span>", showarrow=False, font=dict(size=14, color="#FFFFFF"))
-            fig_donut.update_layout(paper_bgcolor='rgba(0,0,0,0)', height=140, margin=dict(l=0, r=0, t=0, b=0), showlegend=False)
-            st.plotly_chart(fig_donut, use_container_width=True)
-
-        with col_d2:
-            st.markdown("""
-            <div style="font-size: 0.82rem; margin-bottom: 0.4rem;">
-                <div style="display:flex; justify-content:space-between;"><span>Bearing Wear</span><b>68%</b></div>
-                <div style="background:#1E293B; height:6px; border-radius:3px; overflow:hidden;"><div style="background:#8B5CF6; width:68%; height:100%;"></div></div>
-            </div>
-            <div style="font-size: 0.82rem; margin-bottom: 0.4rem;">
-                <div style="display:flex; justify-content:space-between;"><span>Lubrication Degradation</span><b>18%</b></div>
-                <div style="background:#1E293B; height:6px; border-radius:3px; overflow:hidden;"><div style="background:#38BDF8; width:18%; height:100%;"></div></div>
-            </div>
-            <div style="font-size: 0.82rem; margin-bottom: 0.4rem;">
-                <div style="display:flex; justify-content:space-between;"><span>Misalignment</span><b>8%</b></div>
-                <div style="background:#1E293B; height:6px; border-radius:3px; overflow:hidden;"><div style="background:#818CF8; width:8%; height:100%;"></div></div>
-            </div>
-            <div style="font-size: 0.82rem;">
-                <div style="display:flex; justify-content:space-between;"><span>Overload</span><b>6%</b></div>
-                <div style="background:#1E293B; height:6px; border-radius:3px; overflow:hidden;"><div style="background:#475569; width:6%; height:100%;"></div></div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        # Recommended Action Box
-        st.markdown("""
-        <div class="sentinex-action-box">
-            <div class="action-header">🔧 Recommended Action</div>
-            <div class="action-body">Replace spindle bearing during next planned downtime.</div>
-            <div class="action-metrics">
-                <div>
-                    <div class="action-metric-lbl">Estimated Downtime</div>
-                    <div class="action-metric-val">2.5 hrs</div>
-                </div>
-                <div>
-                    <div class="action-metric-lbl">Est. Cost Avoidance</div>
-                    <div class="action-metric-val val-emerald">$18,400</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Row 3: Bottom 4 Feature Matrix Cards
-    f1, f2, f3, f4 = st.columns(4)
-    with f1:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon-box">🎯</div>
-            <div>
-                <div class="feature-title">Predict Failures</div>
-                <div class="feature-desc">48–72 hrs ahead</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with f2:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon-box">💾</div>
-            <div>
-                <div class="feature-title">Multi-Source Data</div>
-                <div class="feature-desc">Sensors, PLC, SCADA</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with f3:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon-box">🧠</div>
-            <div>
-                <div class="feature-title">AI/ML Models</div>
-                <div class="feature-desc">Continuously learning</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    with f4:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="feature-icon-box">📅</div>
-            <div>
-                <div class="feature-title">Actionable Insights</div>
-                <div class="feature-desc">Plan. Schedule. Prevent.</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-def render_interactive_diagnostics(model, scaler, feature_names, iso_forest):
-    st.subheader("🕹️ Interactive Machine Diagnostics Simulator")
-    selected_m_type = st.selectbox("Select Equipment Model (25 Catalog Models)", list(MACHINE_TYPES.keys()))
-    m_info = MACHINE_TYPES[selected_m_type]
-    spec_tuple = config.MACHINE_25_SPECS[selected_m_type]
-
-    st.info(f"**Baseline Bounds for {selected_m_type}**: Air Temp {spec_tuple['air_temp'][0]}–{spec_tuple['air_temp'][1]} K | Speed {spec_tuple['rpm'][0]}–{spec_tuple['rpm'][1]} RPM | Max Torque {spec_tuple['torque'][1]} Nm")
-
-    c1, c2 = st.columns(2)
-    with c1:
-        air_temp = st.slider("Air Temp (°K)", float(m_info['air_temp_range'][0]), float(m_info['air_temp_range'][1]), float(m_info['air_temp_range'][2]))
-        proc_temp = st.slider("Process Temp (°K)", float(m_info['proc_temp_range'][0]), float(m_info['proc_temp_range'][1]), float(m_info['proc_temp_range'][2]))
-        speed = st.slider("Rotational Speed (RPM)", int(m_info['speed_range'][0]), int(m_info['speed_range'][1]), int(m_info['speed_range'][2]))
-    with c2:
-        torque = st.slider("Torque (Nm)", float(m_info['torque_range'][0]), float(m_info['torque_range'][1]), float(m_info['torque_range'][2]))
-        wear = st.slider("Tool Wear (min)", int(m_info['wear_range'][0]), int(m_info['wear_range'][1]), int(m_info['wear_range'][2]))
-        q_code = st.selectbox("Quality Grade", ["L", "M", "H"], index=1)
-
-    raw_dict = {"Machine_Type": selected_m_type, "air_temperature_k": air_temp, "process_temperature_k": proc_temp, "rotational_speed_rpm": speed, "torque_nm": torque, "tool_wear_min": wear, "type": q_code}
-    df_single_proc = engineer_features(pd.DataFrame([raw_dict]))
+    raw_dict = {
+        "Machine_Type": selected_m_type,
+        "air_temperature_k": air_temp,
+        "process_temperature_k": proc_temp,
+        "rotational_speed_rpm": speed,
+        "torque_nm": torque,
+        "tool_wear_min": wear,
+        "type": q_code
+    }
+    df_single_raw = pd.DataFrame([raw_dict])
+    df_single_proc = engineer_features(df_single_raw)
+    
     for col in feature_names:
         if col not in df_single_proc.columns:
             df_single_proc[col] = 0
 
-    X_scaled = scaler.transform(df_single_proc[feature_names])
-    prob = model.predict_proba(X_scaled)[0, 1]
-    risk_level, status_badge, hex_color, rec_action = categorize_risk(prob)
-    df_shap = calculate_shap_breakdown(model, scaler, feature_names, df_single_proc[feature_names])
+    df_single_proc = df_single_proc[feature_names]
+    X_single_scaled = scaler.transform(df_single_proc)
+
+    # 4. Dual-Engine ML Prediction
+    # Level 1: Random Forest Classifier
+    failure_prob = model.predict_proba(X_single_scaled)[0, 1]
+    risk_level, status_badge, hex_color, rec_action = categorize_risk(failure_prob)
+    
+    # Level 2: Isolation Forest Anomaly Detector
+    anomaly_score_pct = compute_anomaly_score(iso_forest, X_single_scaled)
+    df_shap = calculate_shap_breakdown(model, scaler, feature_names, df_single_proc)
+
+    # Log prediction into session history
+    log_entry = {
+        "Timestamp": datetime.now().strftime("%H:%M:%S"),
+        "Machine Model": selected_m_type.split("(")[0].strip(),
+        "Machine ID": machine_id,
+        "Failure Prob %": round(failure_prob * 100, 1),
+        "Anomaly Score %": anomaly_score_pct,
+        "Risk Level": risk_level,
+        "Recommended Action": rec_action
+    }
+    if not st.session_state["prediction_history"] or st.session_state["prediction_history"][-1]["Machine ID"] != machine_id or st.session_state["prediction_history"][-1]["Failure Prob %"] != log_entry["Failure Prob %"]:
+        st.session_state["prediction_history"].append(log_entry)
+
+    # Calculate Condition Trend for this Machine ID
+    trend_label, trend_color, trend_probs, trend_str = get_machine_trend(machine_id)
 
     st.markdown("---")
-    res1, res2 = st.columns(2)
-    with res1:
-        st.metric("Failure Risk Probability", f"{prob*100:.1f}%")
-        st.markdown(f"**Priority**: <span style='color:{hex_color}'>{risk_level}</span>", unsafe_allow_html=True)
-    with res2:
-        st.markdown("#### 🧠 Primary Risk Drivers (SHAP)")
-        fig_shap = create_shap_waterfall_chart(df_shap, max_features=5)
-        st.plotly_chart(fig_shap, use_container_width=True)
+
+    # 5. Dual-Engine Prediction Summary Cards
+    st.markdown("### 📊 Dual-Engine Health & Risk Assessment")
+    col_sum1, col_sum2, col_sum3, col_sum4, col_sum5 = st.columns(5)
+    
+    with col_sum1:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Equipment Unit</div>
+            <div class="metric-val" style="color: #38BDF8;">{machine_id}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col_sum2:
+        st.markdown(f"""
+        <div class="metric-tile" style="border-color: {hex_color}66; background: rgba(15, 23, 42, 0.85);">
+            <div class="metric-label">Maintenance Priority</div>
+            <div class="metric-val" style="color: {hex_color}; font-size: 1.25rem;">{risk_level}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_sum3:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Failure Probability</div>
+            <div class="metric-val" style="color: {hex_color};">{failure_prob * 100:.1f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_sum4:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Anomaly Index</div>
+            <div class="metric-val" style="color: #818CF8;">{anomaly_score_pct}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_sum5:
+        st.markdown(f"""
+        <div class="metric-tile">
+            <div class="metric-label">Condition Trend</div>
+            <div class="metric-val" style="color: {trend_color}; font-size: 1.2rem;">{trend_label}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(f"<div style='margin-top: 0.8rem; background: rgba(30, 41, 59, 0.6); padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); text-align: center;'><b>📈 {trend_str}</b></div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # 6. SHAP Explanation, Anomaly Gauge & Trend Chart
+    col_res1, col_res2 = st.columns([1, 1.2])
+
+    with col_res1:
+        st.markdown("#### Dual-Engine Gauges & Condition Trend")
+        fig_gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=failure_prob * 100,
+            number={'suffix': '%', 'font': {'size': 32, 'color': "#FFFFFF"}},
+            title={'text': f"Random Forest Risk ({machine_id})", 'font': {'size': 13, 'color': "#94A3B8"}},
+            gauge={
+                'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#FFFFFF"},
+                'bar': {'color': hex_color},
+                'bgcolor': "#1E293B",
+                'borderwidth': 1,
+                'bordercolor': "#333333",
+                'steps': [
+                    {'range': [0, 30], 'color': 'rgba(0, 204, 150, 0.2)'},
+                    {'range': [30, 60], 'color': 'rgba(255, 209, 102, 0.2)'},
+                    {'range': [60, 80], 'color': 'rgba(255, 122, 0, 0.2)'},
+                    {'range': [80, 100], 'color': 'rgba(255, 75, 75, 0.2)'}
+                ]
+            }
+        ))
+        fig_gauge.update_layout(paper_bgcolor='rgba(0,0,0,0)', height=200, margin=dict(l=20, r=20, t=30, b=20))
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
+        # Plot Historical Condition Trend if multiple logs exist
+        if len(trend_probs) >= 2:
+            st.markdown("##### 📈 Historical Health Risk Trend")
+            df_trend = pd.DataFrame({"Reading": [f"T-{i}" for i in range(len(trend_probs), 0, -1)], "Failure Prob %": trend_probs})
+            fig_trend = px.line(df_trend, x="Reading", y="Failure Prob %", markers=True, title=f"Risk Progression for {machine_id}")
+            fig_trend.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=180, font=dict(color="#E0E0E0"), margin=dict(l=10, r=10, t=30, b=10))
+            st.plotly_chart(fig_trend, use_container_width=True)
+
+    with col_res2:
+        st.markdown("#### 🧠 Primary Failure Drivers (SHAP XAI)")
+        pos_factors = df_shap[df_shap["shap_value"] > 0]
+        neg_factors = df_shap[df_shap["shap_value"] < 0]
+
+        if not pos_factors.empty:
+            st.markdown("**Factors Increasing Failure Risk (+)**")
+            for _, r in pos_factors.head(3).iterrows():
+                st.markdown(f"- 🔴 **{r['feature']}**: `+{r['shap_value']:.3f}` (Sensor Value: `{r['raw_value']}`)")
+        else:
+            st.info("No significant risk-increasing factors detected.")
+
+        if not neg_factors.empty:
+            st.markdown("**Factors Reducing Failure Risk (-)**")
+            for _, r in neg_factors.head(2).iterrows():
+                st.markdown(f"- 🟢 **{r['feature']}**: `{r['shap_value']:.3f}` (Sensor Value: `{r['raw_value']}`)")
+
+        with st.expander("🔍 View Technical SHAP Explanation Waterfall Chart"):
+            fig_shap = create_shap_waterfall_chart(df_shap, max_features=6)
+            st.plotly_chart(fig_shap, use_container_width=True)
+
+    # 7. Actionable Maintenance Recommendation
+    rec = generate_maintenance_recommendation(risk_level, df_shap)
+    
+    st.markdown(f"""
+    <div class="recommendation-box" style="border-left-color: {hex_color};">
+        <h4 style="color: {hex_color}; margin: 0 0 0.5rem 0;">🔧 {rec['headline']}</h4>
+        <p style="font-size: 1.05rem; font-weight: 600; color: #E2E8F0; margin-bottom: 0.5rem;">
+            {rec['action']}
+        </p>
+        <ul style="color: #94A3B8; margin-bottom: 0;">
+            {''.join([f'<li>{item}</li>' for item in rec['details']])}
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Reference Decision Matrix
+    st.markdown("---")
+    st.markdown("### 🎯 4-Tier Maintenance Priority Matrix")
+    df_matrix = pd.DataFrame([
+        {"Failure Risk Range": "0% – 30%", "Priority": "🟢 LOW", "Action": "Continue standard routine maintenance"},
+        {"Failure Risk Range": "30% – 60%", "Priority": "🟡 MEDIUM", "Action": "Monitor machine closely & schedule check"},
+        {"Failure Risk Range": "60% – 80%", "Priority": "🟠 HIGH", "Action": "Schedule targeted inspection promptly"},
+        {"Failure Risk Range": "80% – 100%", "Priority": "🔴 CRITICAL", "Action": "Immediate shutdown & component repair"}
+    ])
+    st.table(df_matrix)
+
+    # Session Prediction History Log Table
+    st.markdown("---")
+    st.markdown("### 📜 Prediction Log (Session History)")
+    if st.session_state["prediction_history"]:
+        df_hist = pd.DataFrame(st.session_state["prediction_history"]).iloc[::-1]
+        st.dataframe(df_hist, use_container_width=True)
 
 def render_batch_diagnostics(model, scaler, feature_names, iso_forest):
-    st.subheader("📁 Batch CSV Telemetry Screening Pipeline")
-    uploaded_file = st.file_uploader("Upload Telemetry CSV File", type=["csv"])
-    if uploaded_file is not None:
-        df_raw = pd.read_csv(uploaded_file)
-        st.dataframe(df_raw.head(10), use_container_width=True)
-        st.success(f"Loaded {len(df_raw)} records.")
+    st.subheader("📁 Batch CSV Machine Diagnostics & Screening Pipeline")
+    st.caption("Upload or screen industrial sensor CSV datasets across all risk priority levels.")
+
+    col_m_select, col_m_desc = st.columns([1.2, 1])
+    with col_m_select:
+        selected_batch_m_type = st.selectbox(
+            "🏭 Select Target Machine Type for Batch Evaluation",
+            ["Auto-Detect from CSV ('Machine_Type' column)"] + list(MACHINE_TYPES.keys()),
+            index=0,
+            help="Select which Machine Type / Equipment Model this batch dataset belongs to, so predictions evaluate against that machine's specific baseline ranges."
+        )
+    with col_m_desc:
+        if selected_batch_m_type != "Auto-Detect from CSV ('Machine_Type' column)":
+            spec_t = config.MACHINE_25_SPECS[selected_batch_m_type]
+            st.info(f"⚡ **Evaluating as {selected_batch_m_type}**\n- Normal Speed: {spec_t['rpm'][0]}–{spec_t['rpm'][1]} RPM\n- Normal Torque: {spec_t['torque'][0]}–{spec_t['torque'][1]} Nm")
+        else:
+            st.info("ℹ️ **Auto-Detection Mode**: Uses each row's `Machine_Type` column if present in the CSV file.")
+
+    st.markdown("---")
+
+    uploaded_file = st.file_uploader("Upload Industrial Sensor CSV File", type=["csv"])
+
+    if uploaded_file is None:
+        st.info("💡 Don't have a batch file ready? Select a machine type or load a sample test dataset below.")
+        
+        col_s1, col_s2 = st.columns([1, 1])
+        with col_s1:
+            sample_m_choice = st.selectbox(
+                "Select Machine Model for Sample Telemetry Batch",
+                ["All 25 Machines Mixed (100 Records)"] + list(MACHINE_TYPES.keys()),
+                index=0
+            )
+        with col_s2:
+            if st.button("🚀 Load Sample Telemetry Batch (100 Machine Records)"):
+                synth_file = config.RAW_DATA_DIR / "multi_machine_25.csv"
+                if synth_file.exists():
+                    df_all_synth = pd.read_csv(synth_file)
+                    if sample_m_choice != "All 25 Machines Mixed (100 Records)":
+                        df_sub = df_all_synth[df_all_synth["Machine_Type"] == sample_m_choice]
+                        if len(df_sub) >= 100:
+                            df_sample = df_sub.sample(n=100, random_state=42)
+                        else:
+                            df_sample = df_sub.copy()
+                    else:
+                        df_sample = df_all_synth.sample(n=100, random_state=42)
+                else:
+                    from src.data_prep import generate_multi_machine_dataset
+                    df_sample = generate_multi_machine_dataset(samples_per_machine=20).sample(n=100, random_state=42)
+                    
+                process_batch_dataframe(df_sample, model, scaler, feature_names, iso_forest, selected_batch_m_type)
     else:
-        st.info("Upload a CSV file or load sample dataset in Predictive Health tab.")
+        try:
+            df_batch_raw = pd.read_csv(uploaded_file)
+            
+            if df_batch_raw.empty:
+                st.error("⚠️ Uploaded CSV file is empty. Please upload a valid CSV containing sensor records.")
+                return
+                
+            st.session_state["uploaded_custom_df"] = df_batch_raw.copy()
+            st.session_state["uploaded_filename"] = uploaded_file.name
+            
+            process_batch_dataframe(df_batch_raw, model, scaler, feature_names, iso_forest, selected_batch_m_type)
+        except Exception as err:
+            st.error(f"⚠️ Unable to parse uploaded CSV file: {str(err)}. Please ensure it is a valid comma-separated text file.")
 
-def render_benchmarks(df_bench, df_cv, feature_names):
-    st.subheader("📊 Model Performance & 5-Fold Stratified Cross-Validation")
-    if df_bench is not None:
-        st.dataframe(df_bench, use_container_width=True)
+def process_batch_dataframe(df_raw, model, scaler, feature_names, iso_forest, selected_batch_m_type="Auto-Detect from CSV ('Machine_Type' column)"):
+    df_raw = df_raw.reset_index(drop=True)
+    df_raw = df_raw.loc[:, ~df_raw.columns.duplicated()].copy()
+    
+    if selected_batch_m_type != "Auto-Detect from CSV ('Machine_Type' column)":
+        df_raw["Machine_Type"] = selected_batch_m_type
 
-def render_architecture():
-    st.subheader("🏗️ Technical Architecture Specifications")
+    df_engineered = engineer_features(df_raw)
+    
+    # Check if any key sensor features were missing before engineering defaults
+    found_essential = [col for col in ["air_temperature_k", "process_temperature_k", "rotational_speed_rpm", "torque_nm", "tool_wear_min"] if col in df_engineered.columns]
+    
+    st.success(f"Loaded batch telemetry dataset containing {len(df_raw)} machine records. (Evaluating as: {selected_batch_m_type.split('(')[0].strip()})")
+
+    
+    for col in feature_names:
+        if col not in df_engineered.columns:
+            df_engineered[col] = 0
+            
+    df_features = df_engineered[feature_names].reset_index(drop=True)
+    X_scaled = scaler.transform(df_features)
+    probs = model.predict_proba(X_scaled)[:, 1]
+    
+    # Calculate Anomaly Scores for all records
+    anomaly_scores = [compute_anomaly_score(iso_forest, X_scaled[[i]]) for i in range(len(df_raw))]
+    
+    issue_drivers_list = []
+    precautions_list = []
+    
+    for idx in range(len(df_raw)):
+        p = probs[idx]
+        risk_lvl, _, _, rec_act = categorize_risk(p)
+        
+        if risk_lvl == "LOW RISK":
+            issue_drivers_list.append("Normal Operation Baseline")
+            precautions_list.append("Continue standard operating procedure; routine scheduled maintenance.")
+        else:
+            row_feat = df_features.iloc[[idx]]
+            df_shap_row = calculate_shap_breakdown(model, scaler, feature_names, row_feat)
+            rec_row = generate_maintenance_recommendation(risk_lvl, df_shap_row)
+            
+            pos_drivers = df_shap_row[df_shap_row["shap_value"] > 0]
+            if not pos_drivers.empty:
+                top_d = ", ".join(pos_drivers.head(2)["feature"].tolist())
+            else:
+                top_d = "Multivariate Sensor Drift"
+                
+            issue_drivers_list.append(top_d)
+            clean_prec = " ".join([d.replace("**", "").strip() for d in rec_row["details"]])
+            precautions_list.append(clean_prec)
+    
+    df_result = df_raw.copy()
+    df_result["Failure_Probability_%"] = (probs * 100).round(2)
+    df_result["Anomaly_Score_%"] = anomaly_scores
+    df_result["Maintenance_Priority"] = [categorize_risk(p)[0] for p in probs]
+    df_result["Recommended_Action"] = [categorize_risk(p)[3] for p in probs]
+    df_result["Primary_Issue_Drivers"] = issue_drivers_list
+    df_result["Required_Precautions"] = precautions_list
+    
+    # Summary Metrics
+    crit_cnt = (df_result["Maintenance_Priority"] == "CRITICAL RISK").sum()
+    high_cnt = (df_result["Maintenance_Priority"] == "HIGH RISK").sum()
+    med_cnt = (df_result["Maintenance_Priority"] == "MEDIUM RISK").sum()
+    low_cnt = (df_result["Maintenance_Priority"] == "LOW RISK").sum()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("🟢 Low Priority (Normal)", low_cnt)
+    col2.metric("🟡 Medium Priority", med_cnt)
+    col3.metric("🟠 High Priority", high_cnt)
+    col4.metric("🔴 Critical Priority", crit_cnt)
+    
+    st.markdown("### 📋 Machine Health Diagnostics Table")
+    st.caption("Includes Random Forest risk %, Isolation Forest anomaly scores, root causes, and specific precautions.")
+    
+    risk_filter = st.multiselect(
+        "Filter by Priority Level",
+        ["CRITICAL RISK", "HIGH RISK", "MEDIUM RISK", "LOW RISK"],
+        default=["CRITICAL RISK", "HIGH RISK", "MEDIUM RISK", "LOW RISK"]
+    )
+    
+    df_filtered = df_result[df_result["Maintenance_Priority"].isin(risk_filter)].sort_values("Failure_Probability_%", ascending=False)
+    st.dataframe(df_filtered, use_container_width=True)
+    
+    csv_bytes = df_result.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Export Diagnostic Report with Precautions (CSV)",
+        data=csv_bytes,
+        file_name="predictive_maintenance_batch_report.csv",
+        mime="text/csv"
+    )
+
+    # In-Depth Interactive Machine Inspector
+    df_inspectable = df_result[df_result["Maintenance_Priority"].isin(["MEDIUM RISK", "HIGH RISK", "CRITICAL RISK"])].sort_values("Failure_Probability_%", ascending=False)
+    
+    if not df_inspectable.empty:
+        st.markdown("---")
+        st.markdown("### 🔍 Interactive Machine In-Depth Inspector (Flagged Risk Units)")
+        st.caption("Select any Medium, High, or Critical risk machine from the batch to inspect why the problem occurred and view targeted precautions.")
+        
+        machine_labels = []
+        for idx, row in df_inspectable.iterrows():
+            m_id = row.get("Machine_ID", row.get("udi", row.get("UDI", row.get("Product ID", f"Row #{idx+1}"))))
+            m_type = row.get("Machine_Type", selected_batch_m_type.split('(')[0].strip())
+            prob_v = row["Failure_Probability_%"]
+            anom_v = row["Anomaly_Score_%"]
+            r_lvl = row["Maintenance_Priority"]
+            machine_labels.append(f"{m_id} ({m_type}) | {r_lvl} ({prob_v}%, Anomaly: {anom_v}%) — Root Causes: {row['Primary_Issue_Drivers']}")
+            
+        selected_label = st.selectbox("Select Machine for XAI Root Cause Breakdown", machine_labels)
+        selected_index = machine_labels.index(selected_label)
+        selected_row_idx = df_inspectable.index[selected_index]
+        
+        row_raw = df_inspectable.loc[selected_row_idx]
+        row_feat = df_features.loc[[selected_row_idx]]
+        prob = probs[selected_row_idx]
+        r_level, s_badge, h_color, r_act = categorize_risk(prob)
+        
+        df_shap_single = calculate_shap_breakdown(model, scaler, feature_names, row_feat)
+        rec_single = generate_maintenance_recommendation(r_level, df_shap_single)
+        
+        col_m1, col_m2 = st.columns([1, 1.2])
+        with col_m1:
+            st.markdown(f"#### Status: <span style='color:{h_color}'>{s_badge}</span>", unsafe_allow_html=True)
+            st.markdown(f"**Recommended Action**: `{r_act}`")
+            st.markdown(f"""
+            - **Equipment Type**: `{row_raw.get('Machine_Type', selected_batch_m_type.split('(')[0].strip())}`
+            - **Air Temperature**: `{row_raw.get('air_temperature_k', row_raw.get('Air temperature [K]', 'N/A'))}` °K
+            - **Process Temperature**: `{row_raw.get('process_temperature_k', row_raw.get('Process temperature [K]', 'N/A'))}` °K
+            - **Rotational Speed**: `{row_raw.get('rotational_speed_rpm', row_raw.get('Rotational speed [rpm]', 'N/A'))}` RPM
+            - **Torque**: `{row_raw.get('torque_nm', row_raw.get('Torque [Nm]', 'N/A'))}` Nm
+            - **Tool Wear**: `{row_raw.get('tool_wear_min', row_raw.get('Tool wear [min]', 'N/A'))}` min
+            """, unsafe_allow_html=True)
+            
+        with col_m2:
+            st.markdown("#### 🧠 Primary Root Cause Drivers (SHAP)")
+            pos_f_single = df_shap_single[df_shap_single["shap_value"] > 0]
+            if not pos_f_single.empty:
+                for _, r in pos_f_single.head(3).iterrows():
+                    st.markdown(f"- 🔴 **{r['feature']}**: `+{r['shap_value']:.3f}` (Sensor Value: `{r['raw_value']}`)")
+            else:
+                st.info("No significant risk-increasing factors detected.")
+
+            with st.expander("🔍 View Technical SHAP Explanation Waterfall Chart"):
+                fig_single_shap = create_shap_waterfall_chart(df_shap_single, max_features=5)
+                st.plotly_chart(fig_single_shap, use_container_width=True)
+            
+        st.markdown(f"""
+        <div class="recommendation-box" style="border-left-color: {h_color};">
+            <h4 style="color: {h_color}; margin: 0 0 0.5rem 0;">🔧 {rec_single['headline']}</h4>
+            <p style="font-size: 1.05rem; font-weight: 600; color: #E2E8F0; margin-bottom: 0.5rem;">
+                {rec_single['action']}
+            </p>
+            <ul style="color: #94A3B8; margin-bottom: 0;">
+                {''.join([f'<li>{item}</li>' for item in rec_single['details']])}
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+def render_benchmarks_and_theory(df_bench=None, df_cv=None, feature_names=None):
+    st.subheader("📈 Model Performance & 5-Fold Cross-Validation")
+    
+    from src.evaluate import run_full_evaluation_on_custom_data
+    
+    # Check if a custom dataset has been uploaded anywhere in session
+    uploaded_df = st.session_state.get("uploaded_custom_df", None)
+    uploaded_fname = st.session_state.get("uploaded_filename", "Custom Dataset")
+    
+    # Direct File Uploader on Benchmark Page
+    custom_file_bench = st.file_uploader(
+        "Upload Industrial Sensor CSV Dataset to Evaluate Benchmarks on YOUR Data", 
+        type=["csv"], 
+        key="bench_custom_uploader"
+    )
+    
+    if custom_file_bench is not None:
+        try:
+            df_direct = pd.read_csv(custom_file_bench)
+            if not df_direct.empty:
+                st.session_state["uploaded_custom_df"] = df_direct.copy()
+                st.session_state["uploaded_filename"] = custom_file_bench.name
+                uploaded_df = df_direct
+                uploaded_fname = custom_file_bench.name
+        except Exception as e:
+            st.error(f"⚠️ Unable to parse uploaded CSV file: {str(e)}")
+            
+    is_custom_active = False
+    custom_metrics = None
+    
+    if uploaded_df is not None:
+        feats = feature_names if feature_names else config.FEATURE_NAMES
+        custom_metrics = run_full_evaluation_on_custom_data(uploaded_df, feats)
+        if custom_metrics is not None:
+            is_custom_active = True
+            df_cv = custom_metrics["df_cv"]
+            df_bench = custom_metrics["df_holdout"]
+
+    if is_custom_active and custom_metrics is not None:
+        col_b_info, col_b_btn = st.columns([3, 1])
+        with col_b_info:
+            st.markdown(f"""
+            <div style="background-color: #065F46; padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid #10B981; margin-bottom: 1.2rem;">
+                <h4 style="color: #6EE7B7; margin: 0 0 0.3rem 0;">⚡ LIVE BENCHMARK EVALUATION ACTIVE (YOUR DATASET)</h4>
+                <p style="color: #E2E8F0; margin: 0; font-size: 0.95rem;">
+                    All 5-Fold Cross Validation tables, holdout test metrics, class distributions, and confusion matrices below have been <b>dynamically calculated for '{uploaded_fname}'</b> ({len(uploaded_df)} machine records).
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_b_btn:
+            if st.button("🔄 Reset to Reference Baseline"):
+                st.session_state.pop("uploaded_custom_df", None)
+                st.session_state.pop("uploaded_filename", None)
+                st.rerun()
+    else:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.2rem; border-radius: 10px; border-left: 5px solid #38BDF8; margin-bottom: 1.5rem;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0;">ℹ️ Reference Baseline Model Benchmarks</h4>
+            <p style="color: #E2E8F0; margin: 0; font-size: 0.95rem;">
+                Below are the offline validation benchmark tables evaluated across <b>22,500 industrial machine telemetry records</b>. 
+                Upload your CSV dataset above to recalculate all benchmarks live on your data!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 1. 5-Fold Stratified Cross-Validation Summary Table
+    cv_title = "🧪 Live 5-Fold Stratified Cross-Validation Report (YOUR Data)" if is_custom_active else "🧪 Baseline 5-Fold Stratified Cross-Validation Benchmark Report"
+    st.markdown(f"### {cv_title}")
+    st.caption("Evaluates algorithm consistency across 5 distinct data folds to prevent overfitting.")
+
+    if df_cv is not None and not df_cv.empty:
+        st.dataframe(format_benchmark_table(df_cv), use_container_width=True)
+    elif config.CROSS_VAL_PATH.exists():
+        df_cv_load = pd.read_csv(config.CROSS_VAL_PATH)
+        st.dataframe(format_benchmark_table(df_cv_load), use_container_width=True)
+    else:
+        st.info("Run `python -m src.train` to generate 5-Fold Cross-Validation report.")
+
+    st.markdown("---")
+
+    # 2. Holdout Test Set Comparison Table
+    holdout_title = "🏆 Live Holdout Test Set Model Comparison (YOUR Data)" if is_custom_active else "🏆 Baseline Holdout Test Set Model Comparison"
+    st.markdown(f"### {holdout_title}")
+    st.caption("Metrics calculated directly on holdout validation data.")
+
+    if df_bench is not None and not df_bench.empty:
+        st.dataframe(format_benchmark_table(df_bench), use_container_width=True)
+    elif config.MODEL_COMPARISON_PATH.exists():
+        df_comp = pd.read_csv(config.MODEL_COMPARISON_PATH)
+        st.dataframe(format_benchmark_table(df_comp), use_container_width=True)
+
+    st.markdown("---")
+
+    col_imb1, col_imb2 = st.columns([1, 1.2])
+    
+    with col_imb1:
+        st.markdown("### ⚖️ Industrial Class Imbalance & Metric Rationale")
+        st.markdown("""
+        In industrial machinery, failure events are naturally rare (~12.6% of evaluation dataset).
+        
+        **Why Accuracy Alone is Misleading**:
+        A dummy classifier predicting *"Normal"* for every machine would achieve high accuracy, yet fail to detect 100% of broken machines. 
+        
+        **Why F1-Score and Recall are Prioritized**:
+        In predictive maintenance, a **False Negative** (missing a machine failure) results in catastrophic factory downtime and component destruction. Therefore, **Recall** and **F1-Score** are authoritative metrics for system validation.
+        """)
+        
+    with col_imb2:
+        if is_custom_active and custom_metrics is not None:
+            n_cnt, f_cnt = custom_metrics["class_counts"]
+            total_c = n_cnt + f_cnt
+            n_pct = (n_cnt / total_c * 100) if total_c > 0 else 0
+            f_pct = (f_cnt / total_c * 100) if total_c > 0 else 0
+            dist_title = f"Uploaded Dataset Class Breakdown ({total_c} Records)"
+            dist_y = [n_cnt, f_cnt]
+            dist_text = [f"{n_cnt} ({n_pct:.1f}%)", f"{f_cnt} ({f_pct:.1f}%)"]
+        else:
+            dist_title = "Baseline Combined Dataset Class Breakdown (22,500 Records)"
+            dist_y = [19661, 2839]
+            dist_text = ["19,661 (87.4%)", "2,839 (12.6%)"]
+
+        fig_dist = go.Figure(go.Bar(
+            x=["Normal Operation (0)", "Failure Scenarios (1)"],
+            y=dist_y,
+            marker=dict(color=["#10B981", "#EF4444"], line=dict(color="rgba(255,255,255,0.15)", width=1)),
+            text=dist_text,
+            textposition="auto"
+        ))
+        fig_dist.update_layout(
+            title=dict(text=f"<b>{dist_title}</b>", font=dict(color="#F8FAFC")),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            yaxis=dict(title="Sample Count", gridcolor="rgba(255,255,255,0.08)"),
+            xaxis=dict(gridcolor="rgba(255,255,255,0.08)"),
+            font=dict(family="Plus Jakarta Sans, sans-serif", color="#CBD5E1"),
+            height=260,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_dist, use_container_width=True)
+
+    st.markdown("---")
+
+    # Confusion Matrix Benchmark Cards
+    cm_hdr = "🧩 Live Algorithm Confusion Matrices (YOUR Data)" if is_custom_active else "🧩 Algorithm Confusion Matrices (Reference Baseline)"
+    st.markdown(f"### {cm_hdr}")
+    st.caption("Shows True Positives (TP), True Negatives (TN), False Positives (FP), and False Negatives (FN).")
+
+    col_cm1, col_cm2 = st.columns(2)
+    col_cm3, col_cm4 = st.columns(2)
+
+    if is_custom_active and custom_metrics is not None:
+        cm_data = custom_metrics["confusion_matrices"]
+    else:
+        cm_data = {
+            "Random Forest (Production Winner)": np.array([[4202, 25], [12, 561]]),
+            "XGBoost Classifier": np.array([[4195, 32], [12, 561]]),
+            "Decision Tree": np.array([[4157, 70], [17, 556]]),
+            "Logistic Regression": np.array([[3876, 351], [57, 516]])
+        }
+
+    cols = [col_cm1, col_cm2, col_cm3, col_cm4]
+    
+    for idx, (name, cm) in enumerate(cm_data.items()):
+        with cols[idx]:
+            fig_cm = px.imshow(
+                cm,
+                text_auto=True,
+                labels=dict(x="Predicted Label", y="True Label"),
+                x=["Normal (0)", "Failure (1)"],
+                y=["Normal (0)", "Failure (1)"],
+                color_continuous_scale="Blues",
+                title=f"<b>{name}</b>"
+            )
+            fig_cm.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Plus Jakarta Sans, sans-serif", color="#CBD5E1"),
+                height=260,
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            st.plotly_chart(fig_cm, use_container_width=True)
+
+    st.info("💡 **Technical Note**: True Positives (TP) represent correctly identified failure threats; False Negatives (FN) represent unpredicted failure threats (the most critical industrial risk).")
+
+def render_methodology_and_flow():
+    st.subheader("🏗️ System Architecture & Technical Specifications")
+    
+    # System Flow Card
     st.markdown("""
-    - **Classifier**: Random Forest (99.2% Accuracy)
-    - **Anomaly Engine**: Isolation Forest Unsupervised Detector
-    - **Feature Engineering**: Physics-based stress ratios across 25 machine families
-    - **XAI Engine**: SHAP (Shapley Additive exPlanations)
-    """)
+    <div style="background-color: #1E293B; padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 1.5rem;">
+        <h3 style="color: #38BDF8; margin-top: 0; margin-bottom: 1.2rem; text-align: center;">
+            ⚙️ Dual-Engine SmartMaintain-XAI Technical Architecture
+        </h3>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; align-items: center;">
+            <div style="background: #0F172A; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #38BDF8; color: #F8FAFC;">
+                🌡️ <b>Sensor Telemetry</b><br><span style="font-size: 0.8rem; color: #94A3B8;">Temp, Speed, Torque, Wear</span>
+            </div>
+            <span style="color: #38BDF8; font-weight: bold; font-size: 1.2rem;">➔</span>
+            <div style="background: #0F172A; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #38BDF8; color: #F8FAFC;">
+                🧹 <b>Data Engineering</b><br><span style="font-size: 0.8rem; color: #94A3B8;">Scaling & Stress Ratios</span>
+            </div>
+            <span style="color: #38BDF8; font-weight: bold; font-size: 1.2rem;">➔</span>
+            <div style="background: #0F172A; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #38BDF8; color: #F8FAFC;">
+                🤖 <b>Dual ML Engine</b><br><span style="font-size: 0.8rem; color: #94A3B8;">Random + Isolation Forest</span>
+            </div>
+            <span style="color: #38BDF8; font-weight: bold; font-size: 1.2rem;">➔</span>
+            <div style="background: #0F172A; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #38BDF8; color: #F8FAFC;">
+                📊 <b>Risk & Priority %</b><br><span style="font-size: 0.8rem; color: #94A3B8;">4-Tier Matrix Mapping</span>
+            </div>
+            <span style="color: #38BDF8; font-weight: bold; font-size: 1.2rem;">➔</span>
+            <div style="background: #0F172A; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #38BDF8; color: #F8FAFC;">
+                🧠 <b>SHAP XAI Engine</b><br><span style="font-size: 0.8rem; color: #94A3B8;">Root Cause Attribution</span>
+            </div>
+            <span style="color: #38BDF8; font-weight: bold; font-size: 1.2rem;">➔</span>
+            <div style="background: #0F172A; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #FF4B4B; color: #F8FAFC;">
+                🔧 <b>Maintenance Action</b><br><span style="font-size: 0.8rem; color: #FF4B4B;">Targeted Protocol</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 📖 Operating Manual & Technical Documentation")
+    
+    with st.expander("❓ Q1: What is the core function of the Dual-Engine SmartMaintain-XAI platform?"):
+        st.write("SmartMaintain-XAI is a dual-engine decision-support system. It combines Level 1 Supervised Classification (Random Forest for failure probability prediction) and Level 2 Unsupervised Anomaly Detection (Isolation Forest for anomaly score indexing) to evaluate machine condition and trigger preventive maintenance.")
+        
+    with st.expander("❓ Q2: How does sensor telemetry ingestion work?"):
+        st.write("The platform accepts input via interactive simulation controls and bulk CSV file uploads. In enterprise industrial deployments, sensor data streams continuously via IIoT communication protocols such as MQTT, OPC-UA, or Modbus into the prediction pipeline.")
+
+    with st.expander("❓ Q3: How is multi-machine variability handled?"):
+        st.write("Each equipment model has unique rated speed, torque, and thermal boundaries. The system computes machine-relative stress ratios (`rpm_stress`, `torque_stress`, `wear_stress`, `temp_stress`) that normalize sensor readings against equipment-specific design limits.")
+        
+    with st.expander("❓ Q4: Why are F1-Score and Recall prioritized over raw Accuracy?"):
+        st.write("In industrial predictive maintenance, an unpredicted failure causes catastrophic downtime and costly unscheduled repairs. Minimizing False Negatives through Recall and F1-Score ensures high reliability.")
+
+    with st.expander("❓ Q5: Why is SHAP Explainable AI (XAI) integrated?"):
+        st.write("SHAP (Shapley Additive exPlanations) calculates the exact marginal contribution of each sensor parameter to a prediction. Plant engineers require transparent explanations—not black-box numbers—to justify equipment shutdown and targeted component maintenance.")
+
+def render_how_it_works_footer():
+    st.markdown("### ⚙️ How SmartMaintain-XAI Works (6-Step System Methodology)")
+    st.caption("Simplified overview explaining how sensor telemetry flows to operational maintenance decisions.")
+    
+    r1_c1, r1_c2, r1_c3 = st.columns(3)
+    r2_c1, r2_c2, r2_c3 = st.columns(3)
+    
+    with r1_c1:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 130px;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0; font-size: 1.05rem;">1. Collect Sensor Data</h4>
+            <p style="color: #94A3B8; margin: 0; font-size: 0.9rem;">Gather temperature, speed, torque and tool wear metrics.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r1_c2:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 130px;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0; font-size: 1.05rem;">2. Preprocess Data</h4>
+            <p style="color: #94A3B8; margin: 0; font-size: 0.9rem;">Clean input telemetry, engineer stress ratios and physics features.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r1_c3:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 130px;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0; font-size: 1.05rem;">3. Dual ML Engines</h4>
+            <p style="color: #94A3B8; margin: 0; font-size: 0.9rem;">Random Forest & Isolation Forest evaluate machine health condition.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    
+    with r2_c1:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 130px;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0; font-size: 1.05rem;">4. Priority & Trend</h4>
+            <p style="color: #94A3B8; margin: 0; font-size: 0.9rem;">Map failure probability & anomaly score into priority bands and track trend.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r2_c2:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 130px;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0; font-size: 1.05rem;">5. Explain with SHAP</h4>
+            <p style="color: #94A3B8; margin: 0; font-size: 0.9rem;">Identify which sensors influenced prediction and by how much.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r2_c3:
+        st.markdown("""
+        <div style="background-color: #1E293B; padding: 1.1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 130px;">
+            <h4 style="color: #38BDF8; margin: 0 0 0.4rem 0; font-size: 1.05rem;">6. Take Action</h4>
+            <p style="color: #94A3B8; margin: 0; font-size: 0.9rem;">Suggest monitoring, inspection, or immediate maintenance.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
