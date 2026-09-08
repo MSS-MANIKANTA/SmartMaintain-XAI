@@ -1,0 +1,19 @@
+name: Keep Alive Streamlit Cloud App
+
+on:
+  schedule:
+    # Runs every 6 hours (at minute 0 of hour 0, 6, 12, 18)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-streamlit-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit Cloud App to Prevent Sleep
+        run: |
+          echo "Pinging Streamlit Cloud deployment to keep it active..."
+          curl -s -L --max-time 30 "https://smartmachine-xai.streamlit.app" > /dev/null || true
+          curl -s -L --max-time 30 "https://smartmachine-xai.streamlit.app/_stcore/health" > /dev/null || true
+          curl -s -L --max-time 30 "https://smartmaintain-xai.streamlit.app" > /dev/null || true
+          echo "Ping successful! App activity refreshed."
